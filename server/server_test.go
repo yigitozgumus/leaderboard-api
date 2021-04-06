@@ -7,10 +7,11 @@ import (
 )
 
 func TestGETLeaderboard(t *testing.T) {
+	server := &LeaderboardServer{}
 	t.Run("it returns 200 on /leaderboard", func(t *testing.T) {
 		request := newLeaderboardRequest()
 		response := httptest.NewRecorder()
-		LeaderboardServer(response, request)
+		server.ServeHTTP(response, request)
 		got := response.Code
 		want := http.StatusOK
 		if got != want {
