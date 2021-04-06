@@ -26,6 +26,24 @@ func TestGETLeaderboard(t *testing.T) {
 	})
 }
 
+func TestGetLeaderboardFiltered(t *testing.T) {
+	// FIXME
+}
+
+func TestPOSTUserCreate(t *testing.T) {
+	// FIXME
+}
+
+func TestPOSTScoreSubmit(t *testing.T) {
+	// FIXME
+}
+
+func TestGETUserProfile(t *testing.T) {
+	// FIXME
+}
+
+
+
 // helpers
 func newLeaderboardRequest(prefix string) *http.Request {
 	req, _ := http.NewRequest(http.MethodGet,prefix, nil )
