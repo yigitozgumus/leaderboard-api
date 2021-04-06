@@ -1,7 +1,13 @@
 package main
 
-import "fmt"
+import (
+	S "github.com/yigitozgumus/leaderboard-api/server"
+	"log"
+	"net/http"
+)
 
 func main() {
-	fmt.Println("Hello World")
+
+	handler := http.HandlerFunc(S.LeaderboardServer)
+	log.Fatal(http.ListenAndServe(":5000", handler))
 }
