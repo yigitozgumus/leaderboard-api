@@ -1,6 +1,10 @@
 package server
 
-import "net/http"
+import (
+	"net/http"
+)
+
+const prefix = "/leaderboard"
 
 type User struct {
 	displayName string
@@ -18,5 +22,10 @@ type LeaderboardServer struct {
 }
 
 func (l *LeaderboardServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	if r.URL.Path != prefix {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }

@@ -8,20 +8,33 @@ import (
 
 func TestGETLeaderboard(t *testing.T) {
 	server := &LeaderboardServer{}
-	t.Run("it returns 200 on /leaderboard", func(t *testing.T) {
-		request := newLeaderboardRequest()
+	t.Run("server is running", func(t *testing.T) {
+		request := newLeaderboardRequest("/leaderboard")
 		response := httptest.NewRecorder()
 		server.ServeHTTP(response, request)
 		got := response.Code
 		want := http.StatusOK
-		if got != want {
-			t.Errorf("did not get correct status, got %d, want %d",got, want )
-		}
+		assertStatus(t, got, want)
+	})
+	t.Run("malformed endpoint prefix returns 404", func(t *testing.T) {
+		request := newLeaderboardRequest("/leaderboar")
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+		got := response.Code
+		want := http.StatusNotFound
+		assertStatus(t, got, want)
 	})
 }
 
 // helpers
-func newLeaderboardRequest() *http.Request {
-	req, _ := http.NewRequest(http.MethodGet,"/leaderboard", nil )
+func newLeaderboardRequest(prefix string) *http.Request {
+	req, _ := http.NewRequest(http.MethodGet,prefix, nil )
 	return req
+}
+
+func assertStatus(t testing.TB, got, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("did not get correct status, got %d, want %d",got, want )
+	}
 }
