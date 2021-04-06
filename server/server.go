@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 )
 
@@ -14,7 +15,7 @@ type User struct {
 }
 
 type UserStore interface {
-	getUserRankings()
+	getUserRankings() []User
 }
 
 type LeaderboardServer struct {
@@ -28,4 +29,5 @@ func (l *LeaderboardServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, l.store.getUserRankings())
 }
