@@ -19,7 +19,7 @@ type LeaderboardStore interface {
 	GetUserRankings() []User
 	GetUserRankingsFiltered(country string) []User
 	CreateUserProfile(user User)
-	GetUserProfile(name string) // FIXME
+	GetUserProfile(name string) User // FIXME
 }
 
 type LeaderboardServer struct {
