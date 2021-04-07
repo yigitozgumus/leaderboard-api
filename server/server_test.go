@@ -42,17 +42,15 @@ func TestGETUserProfile(t *testing.T) {
 	// FIXME
 }
 
-
-
 // helpers
 func newLeaderboardRequest(prefix string) *http.Request {
-	req, _ := http.NewRequest(http.MethodGet,prefix, nil )
+	req, _ := http.NewRequest(http.MethodGet, prefix, nil)
 	return req
 }
 
 func assertStatus(t testing.TB, got, want int) {
 	t.Helper()
 	if got != want {
-		t.Errorf("did not get correct status, got %d, want %d",got, want )
+		t.Errorf("did not get correct status, got %d, want %d", got, want)
 	}
 }

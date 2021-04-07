@@ -9,23 +9,25 @@ import (
 const jsonContentType = "application/json"
 
 type User struct {
-	displayName string
-	points float64
-	rank uint32
-	country string
+	DisplayName string
+	Points      float64
+	Rank        uint32
+	Country     string
 }
 
-type UserStore interface {
+type LeaderboardStore interface {
 	GetUserRankings() []User
 	GetUserRankingsFiltered(country string) []User
+	CreateUserProfile(user User)
+	GetUserProfile(name string) // FIXME
 }
 
 type LeaderboardServer struct {
-	store UserStore
+	store LeaderboardStore
 	http.Handler
 }
 
-func NewLeaderboardServer(store UserStore) *LeaderboardServer {
+func NewLeaderboardServer(store LeaderboardStore) *LeaderboardServer {
 	l := new(LeaderboardServer)
 	l.store = store
 	router := http.NewServeMux()
@@ -67,5 +69,5 @@ func (l *LeaderboardServer) userProfileHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Request) {
-	// FIXME
+
 }
