@@ -5,6 +5,7 @@ that will return users ranked by their points.
 
 ## Project Structure 
 
+```bash
 .
 ├── LICENSE
 ├── README.md
@@ -20,6 +21,7 @@ that will return users ranked by their points.
 │ ├── server.go
 │ └── server_test.go
 └── webserver
+```
 
 
 ## How to build
