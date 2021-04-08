@@ -20,7 +20,7 @@ type User struct {
 type LeaderboardStore interface {
 	GetUserRankings() []User
 	GetUserRankingsFiltered(country string) []User
-	CreateUserProfile(user User)
+	CreateUserProfile(user User) error
 	GetUserProfile(name string) (User, error) // FIXME
 }
 
@@ -32,6 +32,7 @@ type LeaderboardServer struct {
 // errors
 var invalidCountryError = errors.New("invalid country input")
 var invalidRequestTypeError = errors.New("invalid request type")
+var SameUserError = errors.New("user exists")
 
 func NewLeaderboardServer(store LeaderboardStore) *LeaderboardServer {
 	l := new(LeaderboardServer)
@@ -111,7 +112,13 @@ func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Req
 		}
 		return
 	}
-	l.store.CreateUserProfile(u)
+	err = l.store.CreateUserProfile(u)
+	if err != nil {
+		if errors.As(err, &SameUserError) {
+			errorResponse(w, err.Error(), http.StatusForbidden)
+		}
+		return
+	}
 	successResponse(w)
 }
 

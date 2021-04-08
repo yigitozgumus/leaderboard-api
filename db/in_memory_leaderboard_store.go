@@ -1,20 +1,21 @@
 package db
 
 import (
-	. "github.com/yigitozgumus/leaderboard-api/server"
+	"github.com/google/uuid"
+	"github.com/yigitozgumus/leaderboard-api/server"
 	"sync"
 )
 
 type InMemoryLeaderboardStore struct {
-	store []User
+	store []server.User
 	mu    *sync.Mutex
 }
 
-func (i *InMemoryLeaderboardStore) GetUserRankings() []User {
+func (i *InMemoryLeaderboardStore) GetUserRankings() []server.User {
 	return i.store
 }
 
-func (i *InMemoryLeaderboardStore) GetUserRankingsFiltered(country string) []User {
+func (i *InMemoryLeaderboardStore) GetUserRankingsFiltered(country string) []server.User {
 	leaderboard := i.store[:0]
 	for _, user := range i.store {
 		if user.Country == country {
@@ -24,13 +25,19 @@ func (i *InMemoryLeaderboardStore) GetUserRankingsFiltered(country string) []Use
 	return leaderboard
 }
 
-func (i *InMemoryLeaderboardStore) CreateUserProfile(user User) {
-	// FIXME handle ranking
+func (i *InMemoryLeaderboardStore) CreateUserProfile(user server.User) error {
+	for _, u := range i.store {
+		if u.DisplayName == user.DisplayName {
+			return server.SameUserError
+		}
+	}
+	user.UserId = uuid.New().String()
 	i.store = append(i.store, user)
+	return nil
 }
 
 // FIXME add error for no user present
-func (i *InMemoryLeaderboardStore) GetUserProfile(name string) (User, error) {
+func (i *InMemoryLeaderboardStore) GetUserProfile(name string) (server.User, error) {
 
 	for _, user := range i.store {
 		if user.DisplayName == name {
@@ -38,7 +45,7 @@ func (i *InMemoryLeaderboardStore) GetUserProfile(name string) (User, error) {
 		}
 	}
 	// return empty user
-	return User{}, nil
+	return server.User{}, nil
 }
 
 func NewInMemoryLeaderboardStore() *InMemoryLeaderboardStore {
