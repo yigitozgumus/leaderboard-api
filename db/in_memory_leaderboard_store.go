@@ -11,23 +11,21 @@ type InMemoryLeaderboardStore struct {
 }
 
 func (i *InMemoryLeaderboardStore) GetUserRankings() []User {
-	var leaderboard []User
-	for _, user := range i.store {
-		leaderboard = append(leaderboard, User{DisplayName: user.DisplayName, Points: user.Points, Rank: user.Rank, Country: user.Country})
-	}
-	return leaderboard
+	return i.store
 }
 
-// FIXME add filter for country
 func (i *InMemoryLeaderboardStore) GetUserRankingsFiltered(country string) []User {
 	var leaderboard []User
 	for _, user := range i.store {
-		leaderboard = append(leaderboard, User{DisplayName: user.DisplayName, Points: user.Points, Rank: user.Rank, Country: user.Country})
+		if user.Country == country {
+			leaderboard = append(leaderboard, user)
+		}
 	}
 	return leaderboard
 }
 
 func (i *InMemoryLeaderboardStore) CreateUserProfile(user User) {
+	// FIXME handle ranking
 	i.store = append(i.store, user)
 }
 
