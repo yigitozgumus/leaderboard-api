@@ -15,7 +15,7 @@ func (i *InMemoryLeaderboardStore) GetUserRankings() []User {
 }
 
 func (i *InMemoryLeaderboardStore) GetUserRankingsFiltered(country string) []User {
-	var leaderboard []User
+	leaderboard := i.store[:0]
 	for _, user := range i.store {
 		if user.Country == country {
 			leaderboard = append(leaderboard, user)
@@ -29,15 +29,16 @@ func (i *InMemoryLeaderboardStore) CreateUserProfile(user User) {
 	i.store = append(i.store, user)
 }
 
-func (i *InMemoryLeaderboardStore) GetUserProfile(name string) User {
+// FIXME add error for no user present
+func (i *InMemoryLeaderboardStore) GetUserProfile(name string) (User, error) {
 
 	for _, user := range i.store {
 		if user.DisplayName == name {
-			return user
+			return user, nil
 		}
 	}
 	// return empty user
-	return User{}
+	return User{}, nil
 }
 
 func NewInMemoryLeaderboardStore() *InMemoryLeaderboardStore {

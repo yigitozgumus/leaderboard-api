@@ -10,6 +10,7 @@ const jsonContentType = "application/json"
 const keyContentType = "Content-Type"
 
 type User struct {
+	UserId      string
 	DisplayName string
 	Points      float64
 	Rank        uint32
@@ -20,7 +21,7 @@ type LeaderboardStore interface {
 	GetUserRankings() []User
 	GetUserRankingsFiltered(country string) []User
 	CreateUserProfile(user User)
-	GetUserProfile(name string) User // FIXME
+	GetUserProfile(name string) (User, error) // FIXME
 }
 
 type LeaderboardServer struct {
