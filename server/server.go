@@ -3,9 +3,11 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"github.com/go-chi/chi"
 	"net/http"
 )
 
+// consts
 const jsonContentType = "application/json"
 const keyContentType = "Content-Type"
 
@@ -32,18 +34,20 @@ type LeaderboardServer struct {
 // errors
 var invalidCountryError = errors.New("invalid country input")
 var invalidRequestTypeError = errors.New("invalid request type")
-var SameUserError = errors.New("user exists")
+var UserExistsError = errors.New("user exists")
+var NoUserPresentError = errors.New("no user present")
 
 func NewLeaderboardServer(store LeaderboardStore) *LeaderboardServer {
 	l := new(LeaderboardServer)
 	l.store = store
-	router := http.NewServeMux()
+	router := chi.NewRouter()
 
-	router.Handle("/leaderboard", http.HandlerFunc(l.leaderboardHandler))
-	router.Handle("/leaderboard/", http.HandlerFunc(l.leaderboardFilterHandler))
-	router.Handle("/leaderboard/score/submit", http.HandlerFunc(l.scoreSubmissionHandler))
-	router.Handle("/leaderboard/user/profile/", http.HandlerFunc(l.userProfileHandler))
-	router.Handle("/leaderboard/user/create", http.HandlerFunc(l.createUserHandler))
+	router.Get("/leaderboard", l.leaderboardHandler)
+	router.Get("/leaderboard/{slug}", l.leaderboardFilterHandler)
+	router.Post("/leaderboard/score/submit", l.scoreSubmissionHandler)
+	router.Get("/leaderboard/user/profile/{slug}", l.userProfileHandler)
+	router.Post("/leaderboard/user/create", l.createUserHandler)
+
 	l.Handler = router
 
 	return l
@@ -56,7 +60,10 @@ func (l *LeaderboardServer) leaderboardHandler(w http.ResponseWriter, r *http.Re
 		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	json.NewEncoder(w).Encode(l.store.GetUserRankings())
+	err := json.NewEncoder(w).Encode(l.store.GetUserRankings())
+	if err != nil {
+		panic(err)
+	}
 }
 
 // handles returning the current leaderboard filtered by the country (GET)
@@ -65,13 +72,19 @@ func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *h
 	if err := assertCorrectMethodType(r.Method, http.MethodGet); err != nil {
 		return
 	}
-	country := r.URL.Path[len("/leaderboard/"):]
+	country := chi.URLParam(r, "slug")
 	if len(country) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(invalidCountryError.Error())
+		err := json.NewEncoder(w).Encode(invalidCountryError.Error())
+		if err != nil {
+			panic(err)
+		}
 		return
 	}
-	json.NewEncoder(w).Encode(l.store.GetUserRankingsFiltered(country))
+	err := json.NewEncoder(w).Encode(l.store.GetUserRankingsFiltered(country))
+	if err != nil {
+		panic(err)
+	}
 }
 
 // handles score submission of a user (POST)
@@ -89,6 +102,16 @@ func (l *LeaderboardServer) userProfileHandler(w http.ResponseWriter, r *http.Re
 	if err := assertCorrectMethodType(r.Method, http.MethodGet); err != nil {
 		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+	guid := chi.URLParam(r, "slug")
+	user, err := l.store.GetUserProfile(guid)
+	if err != nil {
+		errorResponse(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = json.NewEncoder(w).Encode(user)
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -114,7 +137,7 @@ func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Req
 	}
 	err = l.store.CreateUserProfile(u)
 	if err != nil {
-		if errors.As(err, &SameUserError) {
+		if errors.As(err, &UserExistsError) {
 			errorResponse(w, err.Error(), http.StatusForbidden)
 		}
 		return
@@ -135,7 +158,10 @@ func errorResponse(w http.ResponseWriter, message string, httpStatusCode int) {
 	resp := make(map[string]string)
 	resp["message"] = message
 	jsonResp, _ := json.Marshal(resp)
-	w.Write(jsonResp)
+	_, err := w.Write(jsonResp)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func successResponse(w http.ResponseWriter) {

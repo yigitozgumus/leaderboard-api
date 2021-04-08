@@ -28,7 +28,7 @@ func (i *InMemoryLeaderboardStore) GetUserRankingsFiltered(country string) []ser
 func (i *InMemoryLeaderboardStore) CreateUserProfile(user server.User) error {
 	for _, u := range i.store {
 		if u.DisplayName == user.DisplayName {
-			return server.SameUserError
+			return server.UserExistsError
 		}
 	}
 	user.UserId = uuid.New().String()
@@ -40,12 +40,11 @@ func (i *InMemoryLeaderboardStore) CreateUserProfile(user server.User) error {
 func (i *InMemoryLeaderboardStore) GetUserProfile(name string) (server.User, error) {
 
 	for _, user := range i.store {
-		if user.DisplayName == name {
+		if user.UserId == name {
 			return user, nil
 		}
 	}
-	// return empty user
-	return server.User{}, nil
+	return server.User{}, server.NoUserPresentError
 }
 
 func NewInMemoryLeaderboardStore() *InMemoryLeaderboardStore {
