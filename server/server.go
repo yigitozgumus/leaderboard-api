@@ -50,10 +50,10 @@ func NewLeaderboardServer(store LeaderboardStore) *LeaderboardServer {
 func (l *LeaderboardServer) leaderboardHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", jsonContentType)
 	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
+		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	json.NewEncoder(w).Encode(l.store.GetUserRankings())
-	w.WriteHeader(http.StatusOK)
 }
 
 // handles returning the current leaderboard filtered by the country (GET)
@@ -69,20 +69,22 @@ func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *h
 		return
 	}
 	json.NewEncoder(w).Encode(l.store.GetUserRankingsFiltered(country))
-	w.WriteHeader(http.StatusOK)
 }
 
 // handles score submission of a user (POST)
 func (l *LeaderboardServer) scoreSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	if err := assertCorrectMethodType(w, r.Method, http.MethodPost); err != nil {
-
+		errorResponse(w,err.Error(), http.StatusBadRequest)
+		return
 	}
+	succesResponse(w)
 }
 
 // handles returning the user profile with given guid (GET)
 func (l *LeaderboardServer) userProfileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", jsonContentType)
 	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
+		errorResponse(w,err.Error(), http.StatusBadRequest)
 		return
 	}
 }
@@ -90,15 +92,43 @@ func (l *LeaderboardServer) userProfileHandler(w http.ResponseWriter, r *http.Re
 // handles creating user with given information (POST)
 func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	if err := assertCorrectMethodType(w, r.Method, http.MethodPost); err != nil {
+		errorResponse(w,err.Error(), http.StatusBadRequest)
 		return
 	}
+	var u User
+	var unmarshalErr *json.UnmarshalTypeError
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&u)
+	if err != nil {
+		if errors.As(err, &unmarshalErr) {
+			errorResponse(w, "Bad Request. Wrong Type provided for field "+unmarshalErr.Field, http.StatusBadRequest)
+		} else {
+			errorResponse(w, "Bad Request "+err.Error(), http.StatusBadRequest)
+		}
+		return
+	}
+	l.store.CreateUserProfile(u)
+	succesResponse(w)
 }
 
 func assertCorrectMethodType(w http.ResponseWriter, requestType string, methodType string) error {
 	if requestType != methodType {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(invalidRequestTypeError.Error())
 		return invalidRequestTypeError
 	}
 	return nil
+}
+
+func errorResponse(w http.ResponseWriter, message string, httpStatusCode int) {
+	w.Header().Set("Content-Type", jsonContentType)
+	w.WriteHeader(httpStatusCode)
+	resp := make(map[string]string)
+	resp["message"] = message
+	jsonResp, _ := json.Marshal(resp)
+	w.Write(jsonResp)
+}
+
+func succesResponse(w http.ResponseWriter) {
+	errorResponse(w, "Success", http.StatusOK)
 }
