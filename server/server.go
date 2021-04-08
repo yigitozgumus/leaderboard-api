@@ -78,7 +78,7 @@ func (l *LeaderboardServer) scoreSubmissionHandler(w http.ResponseWriter, r *htt
 		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	succesResponse(w)
+	successResponse(w)
 }
 
 // handles returning the user profile with given guid (GET)
@@ -111,7 +111,7 @@ func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 	l.store.CreateUserProfile(u)
-	succesResponse(w)
+	successResponse(w)
 }
 
 func assertCorrectMethodType(requestType string, methodType string) error {
@@ -130,6 +130,6 @@ func errorResponse(w http.ResponseWriter, message string, httpStatusCode int) {
 	w.Write(jsonResp)
 }
 
-func succesResponse(w http.ResponseWriter) {
+func successResponse(w http.ResponseWriter) {
 	errorResponse(w, "Success", http.StatusOK)
 }
