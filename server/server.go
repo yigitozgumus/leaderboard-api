@@ -7,6 +7,7 @@ import (
 )
 
 const jsonContentType = "application/json"
+const keyContentType = "Content-Type"
 
 type User struct {
 	DisplayName string
@@ -48,8 +49,8 @@ func NewLeaderboardServer(store LeaderboardStore) *LeaderboardServer {
 
 // Handles returning the current leaderboard (GET)
 func (l *LeaderboardServer) leaderboardHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("content-type", jsonContentType)
 	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
+	w.Header().Set(keyContentType, jsonContentType)
 		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -58,8 +59,8 @@ func (l *LeaderboardServer) leaderboardHandler(w http.ResponseWriter, r *http.Re
 
 // handles returning the current leaderboard filtered by the country (GET)
 func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("content-type", jsonContentType)
 	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
+	w.Header().Set(keyContentType, jsonContentType)
 		return
 	}
 	country := r.URL.Path[len("/leaderboard/"):]
@@ -82,9 +83,9 @@ func (l *LeaderboardServer) scoreSubmissionHandler(w http.ResponseWriter, r *htt
 
 // handles returning the user profile with given guid (GET)
 func (l *LeaderboardServer) userProfileHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("content-type", jsonContentType)
 	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
 		errorResponse(w,err.Error(), http.StatusBadRequest)
+	w.Header().Set(keyContentType, jsonContentType)
 		return
 	}
 }
