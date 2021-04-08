@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -42,13 +43,23 @@ func NewLeaderboardServer(store LeaderboardStore) *LeaderboardServer {
 	return l
 }
 
+// Handles returning the current leaderboard (GET)
 func (l *LeaderboardServer) leaderboardHandler(w http.ResponseWriter, r *http.Request) {
+	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	w.Header().Set("content-type", jsonContentType)
 	json.NewEncoder(w).Encode(l.store.GetUserRankings())
 	w.WriteHeader(http.StatusOK)
 }
 
+// handles returning the current leaderboard filtered by the country (GET)
 func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *http.Request) {
+	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	w.Header().Set("content-type", jsonContentType)
 	country := r.URL.Path[len("/leaderboard/"):]
 	if len(country) == 0 {
@@ -60,14 +71,34 @@ func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *h
 	w.WriteHeader(http.StatusOK)
 }
 
+// handles score submission of a user (POST)
 func (l *LeaderboardServer) scoreSubmissionHandler(w http.ResponseWriter, r *http.Request) {
-	// FIXME
+	if err := assertCorrectMethodType(w, r.Method, http.MethodPost); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 }
 
+// handles returning the user profile with given guid (GET)
 func (l *LeaderboardServer) userProfileHandler(w http.ResponseWriter, r *http.Request) {
-	// FIXME
+	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 }
 
+// handles creating user with given information (POST)
 func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Request) {
+	if err := assertCorrectMethodType(w, r.Method, http.MethodPost); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+}
 
+func assertCorrectMethodType(w http.ResponseWriter, requestType string, methodType string) error {
+	if requestType != methodType {
+		w.WriteHeader(http.StatusBadRequest)
+		return errors.New("invalid request type")
+	}
+	return nil
 }
