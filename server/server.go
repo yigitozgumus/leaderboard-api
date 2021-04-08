@@ -49,8 +49,8 @@ func NewLeaderboardServer(store LeaderboardStore) *LeaderboardServer {
 
 // Handles returning the current leaderboard (GET)
 func (l *LeaderboardServer) leaderboardHandler(w http.ResponseWriter, r *http.Request) {
-	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
 	w.Header().Set(keyContentType, jsonContentType)
+	if err := assertCorrectMethodType(r.Method, http.MethodGet); err != nil {
 		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -59,8 +59,8 @@ func (l *LeaderboardServer) leaderboardHandler(w http.ResponseWriter, r *http.Re
 
 // handles returning the current leaderboard filtered by the country (GET)
 func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *http.Request) {
-	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
 	w.Header().Set(keyContentType, jsonContentType)
+	if err := assertCorrectMethodType(r.Method, http.MethodGet); err != nil {
 		return
 	}
 	country := r.URL.Path[len("/leaderboard/"):]
@@ -74,8 +74,8 @@ func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *h
 
 // handles score submission of a user (POST)
 func (l *LeaderboardServer) scoreSubmissionHandler(w http.ResponseWriter, r *http.Request) {
-	if err := assertCorrectMethodType(w, r.Method, http.MethodPost); err != nil {
-		errorResponse(w,err.Error(), http.StatusBadRequest)
+	if err := assertCorrectMethodType(r.Method, http.MethodPost); err != nil {
+		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	succesResponse(w)
@@ -83,17 +83,17 @@ func (l *LeaderboardServer) scoreSubmissionHandler(w http.ResponseWriter, r *htt
 
 // handles returning the user profile with given guid (GET)
 func (l *LeaderboardServer) userProfileHandler(w http.ResponseWriter, r *http.Request) {
-	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
-		errorResponse(w,err.Error(), http.StatusBadRequest)
 	w.Header().Set(keyContentType, jsonContentType)
+	if err := assertCorrectMethodType(r.Method, http.MethodGet); err != nil {
+		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 }
 
 // handles creating user with given information (POST)
 func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Request) {
-	if err := assertCorrectMethodType(w, r.Method, http.MethodPost); err != nil {
-		errorResponse(w,err.Error(), http.StatusBadRequest)
+	if err := assertCorrectMethodType(r.Method, http.MethodPost); err != nil {
+		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	var u User
@@ -114,7 +114,7 @@ func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Req
 	succesResponse(w)
 }
 
-func assertCorrectMethodType(w http.ResponseWriter, requestType string, methodType string) error {
+func assertCorrectMethodType(requestType string, methodType string) error {
 	if requestType != methodType {
 		return invalidRequestTypeError
 	}
