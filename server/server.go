@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 )
 
@@ -28,6 +27,10 @@ type LeaderboardServer struct {
 	http.Handler
 }
 
+// errors
+var invalidCountryError = errors.New("invalid country input")
+var invalidRequestTypeError = errors.New("invalid request type")
+
 func NewLeaderboardServer(store LeaderboardStore) *LeaderboardServer {
 	l := new(LeaderboardServer)
 	l.store = store
@@ -45,26 +48,24 @@ func NewLeaderboardServer(store LeaderboardStore) *LeaderboardServer {
 
 // Handles returning the current leaderboard (GET)
 func (l *LeaderboardServer) leaderboardHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type", jsonContentType)
 	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("content-type", jsonContentType)
 	json.NewEncoder(w).Encode(l.store.GetUserRankings())
 	w.WriteHeader(http.StatusOK)
 }
 
 // handles returning the current leaderboard filtered by the country (GET)
 func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type", jsonContentType)
 	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("content-type", jsonContentType)
 	country := r.URL.Path[len("/leaderboard/"):]
 	if len(country) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, "country code must not be null")
+		json.NewEncoder(w).Encode(invalidCountryError.Error())
 		return
 	}
 	json.NewEncoder(w).Encode(l.store.GetUserRankingsFiltered(country))
@@ -74,15 +75,14 @@ func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *h
 // handles score submission of a user (POST)
 func (l *LeaderboardServer) scoreSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	if err := assertCorrectMethodType(w, r.Method, http.MethodPost); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+
 	}
 }
 
 // handles returning the user profile with given guid (GET)
 func (l *LeaderboardServer) userProfileHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type", jsonContentType)
 	if err := assertCorrectMethodType(w, r.Method, http.MethodGet); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 }
@@ -90,7 +90,6 @@ func (l *LeaderboardServer) userProfileHandler(w http.ResponseWriter, r *http.Re
 // handles creating user with given information (POST)
 func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	if err := assertCorrectMethodType(w, r.Method, http.MethodPost); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 }
@@ -98,7 +97,8 @@ func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Req
 func assertCorrectMethodType(w http.ResponseWriter, requestType string, methodType string) error {
 	if requestType != methodType {
 		w.WriteHeader(http.StatusBadRequest)
-		return errors.New("invalid request type")
+		json.NewEncoder(w).Encode(invalidRequestTypeError.Error())
+		return invalidRequestTypeError
 	}
 	return nil
 }
