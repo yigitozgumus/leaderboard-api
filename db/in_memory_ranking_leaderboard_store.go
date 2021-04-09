@@ -50,6 +50,7 @@ func (i *InMemoryRankingLeaderboardStore) CreateUserProfile(user server.User) er
 	i.userLock.Lock()
 	defer i.userLock.Unlock()
 	i.displayNameMap[user.DisplayName] = user.UserId
+	user.Rank = uint32(len(i.displayNameMap) + 1)
 	i.playerMap[user.UserId] = user
 	if rankings, exists := i.rankMap.Get(user.Points); exists {
 		rankings[user.UserId] = 1
