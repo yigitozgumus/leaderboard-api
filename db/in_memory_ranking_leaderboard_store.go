@@ -2,17 +2,15 @@ package db
 
 import (
 	"github.com/google/uuid"
+	"github.com/thanhpk/randstr"
 	"github.com/yigitozgumus/leaderboard-api/server"
 	"math"
-	"github.com/thanhpk/randstr"
 	"math/rand"
 	"sync"
 	"time"
 )
 
 //go:generate gotemplate "github.com/ncw/gotemplate/treemap" "RankingMap(float64, map[string]int)"
-
-var countryList = []string{"tr", "de", "fr", "au", "us"}
 
 type InMemoryRankingLeaderboardStore struct {
 	playerMap      map[string]server.User // user id -> user
@@ -86,7 +84,7 @@ func (i *InMemoryRankingLeaderboardStore) SubmitUserScore(score server.Score) (s
 			i.rankMap.findNode(currentScore).value = users
 		}
 		newScore := currentScore + score.Score
-		newScore = math.Round(newScore* 100) / 100
+		newScore = math.Round(newScore*100) / 100
 		if users, exists := i.rankMap.Get(newScore); exists {
 			users[user.UserId] = 1
 			i.rankMap.findNode(newScore).value = users
@@ -101,7 +99,7 @@ func (i *InMemoryRankingLeaderboardStore) SubmitUserScore(score server.Score) (s
 
 func (i *InMemoryRankingLeaderboardStore) CreateUserProfiles(submission server.Submission) error {
 	userSize := submission.SubmissionSize
-	for index := 0 ; index < userSize; index++ {
+	for index := 0; index < userSize; index++ {
 		_ = i.CreateUserProfile(server.User{DisplayName: randstr.String(10), Country: getRandomEntry(countryList)})
 	}
 	return nil
@@ -110,7 +108,7 @@ func (i *InMemoryRankingLeaderboardStore) CreateUserProfiles(submission server.S
 func (i *InMemoryRankingLeaderboardStore) CreateScoreSubmissions(submission server.Submission) error {
 	numberOfScores := submission.SubmissionSize
 	userList := getUserList(i)
-	for index := 0; index < numberOfScores ; index++ {
+	for index := 0; index < numberOfScores; index++ {
 		score := getRandomScore(submission)
 		_, _ = i.SubmitUserScore(server.Score{Score: score, UserId: getRandomEntry(userList)})
 	}
@@ -118,6 +116,8 @@ func (i *InMemoryRankingLeaderboardStore) CreateScoreSubmissions(submission serv
 }
 
 // helpers
+var countryList = []string{"tr", "de", "fr", "au", "us"}
+
 func scoreRankCompare(x, y float64) bool { return x > y }
 
 func getRandomEntry(list []string) string {
