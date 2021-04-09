@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/yigitozgumus/leaderboard-api/server"
 	"sync"
+	"time"
 )
 
 type InMemoryLeaderboardStore struct {
@@ -32,11 +33,12 @@ func (i *InMemoryLeaderboardStore) CreateUserProfile(user server.User) error {
 		}
 	}
 	user.UserId = uuid.New().String()
+	i.mu.Lock()
+	defer i.mu.Unlock()
 	i.store = append(i.store, user)
 	return nil
 }
 
-// FIXME add error for no user present
 func (i *InMemoryLeaderboardStore) GetUserProfile(name string) (server.User, error) {
 
 	for _, user := range i.store {
@@ -45,6 +47,23 @@ func (i *InMemoryLeaderboardStore) GetUserProfile(name string) (server.User, err
 		}
 	}
 	return server.User{}, server.NoUserPresentError
+}
+
+func (i *InMemoryLeaderboardStore) SubmitUserScore(score server.Score) (server.Score, error) {
+	score.TimeStamp = time.Now().String()
+	index := -1
+	for i, user := range i.store {
+		if user.UserId == score.UserId {
+			index = i
+		}
+	}
+	if index != -1  {
+		i.mu.Lock()
+		defer i.mu.Unlock()
+		i.store[index].Points = score.Score
+		return score, nil
+	}
+	return score, server.NoUserPresentError
 }
 
 func NewInMemoryLeaderboardStore() *InMemoryLeaderboardStore {

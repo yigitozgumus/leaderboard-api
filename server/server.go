@@ -21,8 +21,8 @@ type User struct {
 }
 
 type Score struct {
-	UserId    string  `json:"user_id"`
 	Score     float64 `json:"score"`
+	UserId    string  `json:"user_id"`
 	TimeStamp string  `json:"time_stamp"`
 }
 
@@ -31,7 +31,7 @@ type LeaderboardStore interface {
 	GetUserRankingsFiltered(country string) []User
 	CreateUserProfile(user User) error
 	GetUserProfile(name string) (User, error) // FIXME
-	AddScoreSubmission(score Score) error
+	SubmitUserScore(score Score) (Score, error)
 }
 
 type LeaderboardServer struct {
@@ -115,12 +115,13 @@ func (l *LeaderboardServer) scoreSubmissionHandler(w http.ResponseWriter, r *htt
 		}
 		return
 	}
-	err = l.store.AddScoreSubmission(s)
+	var score Score
+	score, err = l.store.SubmitUserScore(s)
 	if err != nil {
 		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	successResponse(w)
+	scoreSubmissionResponse(w, score)
 }
 
 // handles returning the user profile with given guid (GET)
@@ -191,7 +192,23 @@ func errorResponse(w http.ResponseWriter, message string, httpStatusCode int) {
 	}
 }
 
+
 func successResponse(w http.ResponseWriter) {
 	errorResponse(w, "Success", http.StatusOK)
+}
+
+func scoreSubmissionResponse(w http.ResponseWriter, score Score) {
+	w.Header().Set("Content-Type", jsonContentType)
+
+	resp := make(map[string]Score)
+	resp["submission"] = score
+	jsonResp, err := json.Marshal(resp)
+	if err != nil {
+		errorResponse(w, err.Error(), http.StatusForbidden)
+	}
+	_, err = w.Write(jsonResp)
+	if err != nil {
+		panic(err)
+	}
 }
 
