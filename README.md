@@ -11,16 +11,19 @@ that will return users ranked by their points.
 ├── README.md
 ├── cmd
 │ ├── cli
+│ │ └── main.go
 │ └── webserver
 │     └── main.go
 ├── db
-│ └── in_memory_leaderboard_store.go
+│ ├── gotemplate_RankingMap.go
+│ ├── in_memory_leaderboard_store.go
+│ └── in_memory_ranking_leaderboard_store.go
 ├── go.mod
-├── pbcopy
-├── server
-│ ├── server.go
-│ └── server_test.go
-└── webserver
+├── go.sum
+└── server
+    ├── server.go
+    └── server_test.go
+
 ```
 
 
