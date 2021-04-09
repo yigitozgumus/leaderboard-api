@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	store := db.NewInMemoryLeaderboardStore()
+	store := db.NewInMemoryRankingStore()
 	leaderboardServer := server.NewLeaderboardServer(store)
 	log.Fatal(http.ListenAndServe(":5000", leaderboardServer))
 }
