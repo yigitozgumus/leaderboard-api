@@ -4,11 +4,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/yigitozgumus/leaderboard-api/server"
 	"math"
+	"github.com/thanhpk/randstr"
+	"math/rand"
 	"sync"
 	"time"
 )
 
 //go:generate gotemplate "github.com/ncw/gotemplate/treemap" "RankingMap(float64, map[string]int)"
+
+var countryList = []string{"tr", "de", "fr", "au", "us"}
 
 type InMemoryRankingLeaderboardStore struct {
 	playerMap      map[string]server.User // user id -> user
@@ -95,7 +99,26 @@ func (i *InMemoryRankingLeaderboardStore) SubmitUserScore(score server.Score) (s
 	return score, nil
 }
 
+func (i *InMemoryRankingLeaderboardStore) CreateUserProfiles(submission server.Submission) error {
+	userSize := submission.SubmissionSize
+	var index uint32 = 0
+	for ; index < userSize; index++ {
+		i.CreateUserProfile(server.User{DisplayName: randstr.String(10), Country: getRandomCountry()})
+	}
+	return nil
+}
+
+func (i *InMemoryRankingLeaderboardStore) CreateScoreSubmissions(submission server.Submission) error {
+	return nil
+}
+
 func scoreRankCompare(x, y float64) bool { return x > y }
+
+func getRandomCountry() string {
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(countryList), func(i, j int) { countryList[i], countryList[j] = countryList[j], countryList[i] })
+	return countryList[0]
+}
 
 func NewInMemoryRankingStore() *InMemoryRankingLeaderboardStore {
 	rankMap := NewRankingMap(scoreRankCompare)

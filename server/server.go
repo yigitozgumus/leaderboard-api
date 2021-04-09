@@ -30,13 +30,21 @@ type LeaderboardStore interface {
 	GetUserRankings() []User
 	GetUserRankingsFiltered(country string) []User
 	CreateUserProfile(user User) error
-	GetUserProfile(userId string) (User, error) // FIXME
+	GetUserProfile(userId string) (User, error)
 	SubmitUserScore(score Score) (Score, error)
+	CreateUserProfiles(submission Submission) error
+	CreateScoreSubmissions(submission Submission) error
 }
 
 type LeaderboardServer struct {
 	store LeaderboardStore
 	http.Handler
+}
+
+type Submission struct {
+	SubmissionSize uint32  `json:"submission_size"`
+	MaxScore       float64 `json:"max_score"`
+	MinScore       float64 `json:"min_score"`
 }
 
 // errors
@@ -157,12 +165,50 @@ func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Req
 	successResponse(w)
 }
 
+// handles creating dummy users for testing
 func (l *LeaderboardServer) dummyUserHandler(w http.ResponseWriter, r *http.Request) {
-	successResponse(w)
+	var s Submission
+	var unmarshalErr *json.UnmarshalTypeError
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&s)
+	if err != nil {
+		if errors.As(err, &unmarshalErr) {
+			errorResponse(w, "Bad Request. Wrong Type provided for field "+unmarshalErr.Field, http.StatusBadRequest)
+		} else {
+			errorResponse(w, "Bad Request "+err.Error(), http.StatusBadRequest)
+		}
+		return
+	}
+	err = l.store.CreateUserProfiles(s)
+	if err != nil {
+		errorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
+// handles creating dummy user score submissions for testing
 func (l *LeaderboardServer) dummyScoreSubmissionHandler(w http.ResponseWriter, r *http.Request) {
-	successResponse(w)
+	var s Submission
+	var unmarshalErr *json.UnmarshalTypeError
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&s)
+	if err != nil {
+		if errors.As(err, &unmarshalErr) {
+			errorResponse(w, "Bad Request. Wrong Type provided for field "+unmarshalErr.Field, http.StatusBadRequest)
+		} else {
+			errorResponse(w, "Bad Request "+err.Error(), http.StatusBadRequest)
+		}
+		return
+	}
+	err = l.store.CreateScoreSubmissions(s)
+	if err != nil {
+		errorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 func errorResponse(w http.ResponseWriter, message string, httpStatusCode int) {
