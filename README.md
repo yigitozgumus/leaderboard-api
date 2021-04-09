@@ -14,7 +14,7 @@ that will return users ranked by their points.
 │ │ └── main.go
 │ └── webserver
 │     └── main.go
-├── db
+├── datastore
 │ ├── gotemplate_RankingMap.go
 │ ├── in_memory_leaderboard_store.go
 │ └── in_memory_ranking_leaderboard_store.go

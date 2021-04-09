@@ -5,12 +5,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"github.com/yigitozgumus/leaderboard-api/db"
+	"github.com/yigitozgumus/leaderboard-api/datastore"
 	"github.com/yigitozgumus/leaderboard-api/server"
 )
 
 func main() {
-	store := db.NewInMemoryRankingStore()
+	store := datastore.NewInMemoryRankingStore()
 	var leaderboardServer *server.LeaderboardServer
 	argDoesNotExist := len(os.Args) == 1
 	if argDoesNotExist{
