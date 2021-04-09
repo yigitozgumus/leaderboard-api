@@ -26,6 +26,7 @@ func (i *InMemoryRankingLeaderboardStore) GetUserRankings() []server.User {
 		users := it.Value()
 		for key := range users {
 			user := i.playerMap[key]
+			user.UserId = "" // remove userId on display
 			user.Rank = uint32(len(leaderboard) + 1)
 			leaderboard = append(leaderboard, user)
 		}

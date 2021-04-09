@@ -13,7 +13,7 @@ const jsonContentType = "application/json"
 const keyContentType = "Content-Type"
 
 type User struct {
-	UserId      string  `json:"user_id"`
+	UserId      string  `json:"user_id,omitempty"`
 	DisplayName string  `json:"display_name"`
 	Points      float64 `json:"points"`
 	Rank        uint32  `json:"rank"`
