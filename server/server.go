@@ -41,7 +41,6 @@ type LeaderboardServer struct {
 
 // errors
 var invalidCountryError = errors.New("invalid country input")
-var invalidRequestTypeError = errors.New("invalid request type")
 var UserExistsError = errors.New("user exists")
 var NoUserPresentError = errors.New("no user present")
 
@@ -68,10 +67,6 @@ func NewLeaderboardServer(store LeaderboardStore, isDevelopment bool) *Leaderboa
 // Handles returning the current leaderboard (GET)
 func (l *LeaderboardServer) leaderboardHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(keyContentType, jsonContentType)
-	if err := assertCorrectMethodType(r.Method, http.MethodGet); err != nil {
-		errorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	err := json.NewEncoder(w).Encode(l.store.GetUserRankings())
 	if err != nil {
 		panic(err)
@@ -81,9 +76,6 @@ func (l *LeaderboardServer) leaderboardHandler(w http.ResponseWriter, r *http.Re
 // handles returning the current leaderboard filtered by the country (GET)
 func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(keyContentType, jsonContentType)
-	if err := assertCorrectMethodType(r.Method, http.MethodGet); err != nil {
-		return
-	}
 	country := chi.URLParam(r, "slug")
 	if len(country) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -101,10 +93,6 @@ func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *h
 
 // handles score submission of a user (POST)
 func (l *LeaderboardServer) scoreSubmissionHandler(w http.ResponseWriter, r *http.Request) {
-	if err := assertCorrectMethodType(r.Method, http.MethodPost); err != nil {
-		errorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	var s Score
 	var unmarshalErr *json.UnmarshalTypeError
 
@@ -131,10 +119,6 @@ func (l *LeaderboardServer) scoreSubmissionHandler(w http.ResponseWriter, r *htt
 // handles returning the user profile with given guid (GET)
 func (l *LeaderboardServer) userProfileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(keyContentType, jsonContentType)
-	if err := assertCorrectMethodType(r.Method, http.MethodGet); err != nil {
-		errorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	guid := chi.URLParam(r, "slug")
 	user, err := l.store.GetUserProfile(guid)
 	if err != nil {
@@ -149,10 +133,6 @@ func (l *LeaderboardServer) userProfileHandler(w http.ResponseWriter, r *http.Re
 
 // handles creating user with given information (POST)
 func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Request) {
-	if err := assertCorrectMethodType(r.Method, http.MethodPost); err != nil {
-		errorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	var u User
 	var unmarshalErr *json.UnmarshalTypeError
 
@@ -177,19 +157,12 @@ func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Req
 	successResponse(w)
 }
 
-func (l *LeaderboardServer) dummyUserHandler(w http.ResponseWriter, r *http.Request){
+func (l *LeaderboardServer) dummyUserHandler(w http.ResponseWriter, r *http.Request) {
 	successResponse(w)
 }
 
 func (l *LeaderboardServer) dummyScoreSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	successResponse(w)
-}
-
-func assertCorrectMethodType(requestType string, methodType string) error {
-	if requestType != methodType {
-		return invalidRequestTypeError
-	}
-	return nil
 }
 
 func errorResponse(w http.ResponseWriter, message string, httpStatusCode int) {
@@ -203,7 +176,6 @@ func errorResponse(w http.ResponseWriter, message string, httpStatusCode int) {
 		panic(err)
 	}
 }
-
 
 func successResponse(w http.ResponseWriter) {
 	errorResponse(w, "Success", http.StatusOK)
@@ -223,4 +195,3 @@ func scoreSubmissionResponse(w http.ResponseWriter, score Score) {
 		panic(err)
 	}
 }
-
