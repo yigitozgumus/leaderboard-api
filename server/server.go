@@ -45,7 +45,7 @@ var invalidRequestTypeError = errors.New("invalid request type")
 var UserExistsError = errors.New("user exists")
 var NoUserPresentError = errors.New("no user present")
 
-func NewLeaderBoardDevelopmentServer(store LeaderboardStore) *LeaderboardServer {
+func NewLeaderboardServer(store LeaderboardStore, isDevelopment bool) *LeaderboardServer {
 	l := new(LeaderboardServer)
 	l.store = store
 	router := chi.NewRouter()
@@ -55,25 +55,10 @@ func NewLeaderBoardDevelopmentServer(store LeaderboardStore) *LeaderboardServer 
 	router.Post("/leaderboard/score/submit", l.scoreSubmissionHandler)
 	router.Get("/leaderboard/user/profile/{slug}", l.userProfileHandler)
 	router.Post("/leaderboard/user/create", l.createUserHandler)
-	// endpoints for testing purposes
-	router.Post("/leaderboard/test/create-users", l.dummyUserHandler)
-	router.Post("/leaderboard/test/submit-scores", l.dummyScoreSubmissionHandler)
-
-	l.Handler = router
-
-	return l
-}
-
-func NewLeaderBoardProductionServer(store LeaderboardStore) *LeaderboardServer {
-	l := new(LeaderboardServer)
-	l.store = store
-	router := chi.NewRouter()
-
-	router.Get("/leaderboard", l.leaderboardHandler)
-	router.Get("/leaderboard/{slug}", l.leaderboardFilterHandler)
-	router.Post("/leaderboard/score/submit", l.scoreSubmissionHandler)
-	router.Get("/leaderboard/user/profile/{slug}", l.userProfileHandler)
-	router.Post("/leaderboard/user/create", l.createUserHandler)
+	if isDevelopment {
+		router.Post("/leaderboard/test/create-users", l.dummyUserHandler)
+		router.Post("/leaderboard/test/submit-scores", l.dummyScoreSubmissionHandler)
+	}
 
 	l.Handler = router
 

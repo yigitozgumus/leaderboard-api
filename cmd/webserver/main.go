@@ -14,11 +14,14 @@ func main() {
 	var leaderboardServer *server.LeaderboardServer
 	argDoesNotExist := len(os.Args) == 1
 	if argDoesNotExist{
-		leaderboardServer = server.NewLeaderBoardProductionServer(store)
+		leaderboardServer = server.NewLeaderboardServer(store, false)
 		fmt.Println("Initializing Production Server")
-	} else {
-		leaderboardServer = server.NewLeaderBoardDevelopmentServer(store)
+	} else if arg := os.Args[1]; arg == "dev" {
+		leaderboardServer = server.NewLeaderboardServer(store, true)
 		fmt.Println("Initializing Development Server")
+	} else {
+		fmt.Println("Wrong Parameter, Did you mean \"dev\" ?")
+		os.Exit(1)
 	}
 
 	log.Fatal(http.ListenAndServe(":5000", leaderboardServer))
