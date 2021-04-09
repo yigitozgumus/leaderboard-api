@@ -3,8 +3,9 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"github.com/go-chi/chi"
 	"net/http"
+
+	"github.com/go-chi/chi"
 )
 
 // consts
@@ -12,11 +13,17 @@ const jsonContentType = "application/json"
 const keyContentType = "Content-Type"
 
 type User struct {
-	UserId      string
-	DisplayName string
-	Points      float64
-	Rank        uint32
-	Country     string
+	UserId      string  `json:"user_id"`
+	DisplayName string  `json:"display_name"`
+	Points      float64 `json:"points"`
+	Rank        uint32  `json:"rank"`
+	Country     string  `json:"country"`
+}
+
+type Score struct {
+	UserId    string  `json:"user_id"`
+	Score     float64 `json:"score"`
+	TimeStamp string  `json:"time_stamp"`
 }
 
 type LeaderboardStore interface {
@@ -24,6 +31,7 @@ type LeaderboardStore interface {
 	GetUserRankingsFiltered(country string) []User
 	CreateUserProfile(user User) error
 	GetUserProfile(name string) (User, error) // FIXME
+	AddScoreSubmission(score Score) error
 }
 
 type LeaderboardServer struct {
@@ -90,6 +98,25 @@ func (l *LeaderboardServer) leaderboardFilterHandler(w http.ResponseWriter, r *h
 // handles score submission of a user (POST)
 func (l *LeaderboardServer) scoreSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	if err := assertCorrectMethodType(r.Method, http.MethodPost); err != nil {
+		errorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	var s Score
+	var unmarshalErr *json.UnmarshalTypeError
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&s)
+	if err != nil {
+		if errors.As(err, &unmarshalErr) {
+			errorResponse(w, "Bad Request. Wrong Type provided for field "+unmarshalErr.Field, http.StatusBadRequest)
+		} else {
+			errorResponse(w, "Bad Request "+err.Error(), http.StatusBadRequest)
+		}
+		return
+	}
+	err = l.store.AddScoreSubmission(s)
+	if err != nil {
 		errorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -167,3 +194,4 @@ func errorResponse(w http.ResponseWriter, message string, httpStatusCode int) {
 func successResponse(w http.ResponseWriter) {
 	errorResponse(w, "Success", http.StatusOK)
 }
+
