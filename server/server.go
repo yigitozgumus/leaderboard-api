@@ -55,6 +55,9 @@ func NewLeaderboardServer(store LeaderboardStore) *LeaderboardServer {
 	router.Post("/leaderboard/score/submit", l.scoreSubmissionHandler)
 	router.Get("/leaderboard/user/profile/{slug}", l.userProfileHandler)
 	router.Post("/leaderboard/user/create", l.createUserHandler)
+	// endpoints for testing purposes
+	router.Post("/leaderboard/test/create-users", l.dummyUserHandler)
+	router.Post("/leaderboard/test/submit-scores", l.dummyScoreSubmissionHandler)
 
 	l.Handler = router
 
@@ -170,6 +173,14 @@ func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Req
 		}
 		return
 	}
+	successResponse(w)
+}
+
+func (l *LeaderboardServer) dummyUserHandler(w http.ResponseWriter, r *http.Request){
+	successResponse(w)
+}
+
+func (l *LeaderboardServer) dummyScoreSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	successResponse(w)
 }
 
