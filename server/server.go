@@ -42,9 +42,9 @@ type LeaderboardServer struct {
 }
 
 type Submission struct {
-	SubmissionSize uint32  `json:"submission_size"`
-	MaxScore       float64 `json:"max_score"`
-	MinScore       float64 `json:"min_score"`
+	SubmissionSize int  `json:"submission_size"`
+	MaxScore       int `json:"max_score"`
+	MinScore       int `json:"min_score"`
 }
 
 // errors
