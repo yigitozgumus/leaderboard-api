@@ -30,7 +30,7 @@ type LeaderboardStore interface {
 	GetUserRankings() []User
 	GetUserRankingsFiltered(country string) []User
 	CreateUserProfile(user User) error
-	GetUserProfile(name string) (User, error) // FIXME
+	GetUserProfile(userId string) (User, error) // FIXME
 	SubmitUserScore(score Score) (Score, error)
 }
 
