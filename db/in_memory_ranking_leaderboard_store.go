@@ -32,7 +32,14 @@ func (i *InMemoryRankingLeaderboardStore) GetUserRankings() []server.User {
 }
 
 func (i *InMemoryRankingLeaderboardStore) GetUserRankingsFiltered(country string) []server.User {
-	panic("implement me")
+	leaderboard := i.GetUserRankings()
+	filtered := leaderboard[:0]
+	for _, user := range leaderboard {
+		if user.Country == country {
+			filtered = append(filtered, user)
+		}
+	}
+	return filtered
 }
 
 func (i *InMemoryRankingLeaderboardStore) CreateUserProfile(user server.User) error {
