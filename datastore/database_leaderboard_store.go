@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"log"
+	"math"
 	"sync"
 	"time"
 )
@@ -23,6 +24,15 @@ type DatabaseLeaderboardStore struct {
 	connection     string
 	userLock       *sync.Mutex
 	scoreLock      *sync.Mutex
+}
+
+type Ranking struct {
+	Score float64 `bson:"score"`
+	CurrentUsers []UserRank `bson:"current_users"`
+}
+
+type UserRank struct {
+	User string `bson:"user_id"`
 }
 
 func (d *DatabaseLeaderboardStore) GetUserRankings() []server.User {
@@ -38,6 +48,7 @@ func (d *DatabaseLeaderboardStore) GetUserRankingsFiltered(country string) []ser
 	// FIXME
 	return nil
 }
+
 func (d *DatabaseLeaderboardStore) CreateUserProfile(user server.User) error {
 	user.UserId = uuid.New().String()
 	d.userLock.Lock()
@@ -55,7 +66,20 @@ func (d *DatabaseLeaderboardStore) CreateUserProfile(user server.User) error {
 	if dbError != nil {
 		return dbError
 	}
-	// TODO add ranking information
+	find := d.getRankings().FindOne(nil, bson.M{"score": 0})
+	if find.Err() != nil {
+		d.getRankings().InsertOne(nil,Ranking{0, []UserRank{UserRank{user.UserId}}})
+	} else {
+		filter := bson.M{
+			"score": bson.M{
+				"$eq": 0,
+			},
+		}
+		update := bson.M{
+			"$push": bson.M{
+				"current_users": bson.M{"user_id": user.UserId}}}
+		_ = d.getRankings().FindOneAndUpdate(nil, filter, update)
+	}
 
 	return nil
 }
@@ -65,6 +89,7 @@ func (d *DatabaseLeaderboardStore) GetUserProfile(userId string) (server.User, e
 
 func (d *DatabaseLeaderboardStore) SubmitUserScore(score server.Score) (server.Score, error) {
 	score.TimeStamp = time.Now().String()
+	// check if the user is present
 	find := d.getUsers().FindOne(nil, bson.M{"_id" : score.UserId})
 	if find.Err() != nil {
 		return score, server.NoUserPresentError
@@ -74,10 +99,54 @@ func (d *DatabaseLeaderboardStore) SubmitUserScore(score server.Score) (server.S
 	var u server.User
 	find.Decode(&u)
 	currentScore := u.Points
-	
+	newScore := currentScore + score.Score
+	newScore = math.Round(newScore*100) / 100
+	// check if current score of the player is present in the leaderboard
+	find = d.getRankings().FindOne(nil, bson.M{"score": currentScore})
+	if find.Err() != nil {
+		return score, errors.New("current score should have a entry")
+	}
+	filter := bson.M{
+		"score": bson.M{
+			"$eq": currentScore,
+		},
+	}
+	update := bson.M{
+			"$pull": bson.M{
+				"current_users" : bson.M {
+				"user_id": bson.M{"$in": bson.A{score.UserId}}}},
+		}
 
+	res := d.getRankings().FindOneAndUpdate(nil, filter, update)
+	if res.Err() != nil {
+
+	}
+	filter = bson.M{
+		"score": bson.M{
+			"$eq": newScore,
+		},
+	}
+	update = bson.M{
+		"$push": bson.M{
+			"current_users.user_id": score.UserId}}
+	res = d.getRankings().FindOneAndUpdate(nil, filter, update)
+	if res.Err() != nil {
+		d.getRankings().InsertOne(nil,Ranking{newScore, []UserRank{UserRank{score.UserId}}})
+	}
+	filter = bson.M {
+		"_id": bson.M {
+			"$eq": score.UserId,
+		},
+	}
+	update = bson.M {
+		"$set" : bson.M {
+			"points": newScore,
+		},
+	}
+	d.getUsers().FindOneAndUpdate(nil , filter, update)
 	return server.Score{}, nil
 }
+
 func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submission) error {
 	userSize := submission.SubmissionSize
 	d.userLock.Lock()
@@ -104,6 +173,10 @@ func (d *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Subm
 
 func (d *DatabaseLeaderboardStore) getUsers() *mongo.Collection {
 	return d.client.Database("leaderboard").Collection("users")
+}
+
+func (d *DatabaseLeaderboardStore) getRankings() *mongo.Collection {
+	return d.client.Database("leaderboard").Collection("rankings")
 }
 
 func NewDatabaseLeaderboardStore(config server.ConfigurationType) *DatabaseLeaderboardStore {
