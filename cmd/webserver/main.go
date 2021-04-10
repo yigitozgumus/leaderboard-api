@@ -1,8 +1,8 @@
 package main
 
 import (
-	"errors"
 	"fmt"
+	"github.com/joho/godotenv"
 	"github.com/yigitozgumus/leaderboard-api/datastore"
 	"github.com/yigitozgumus/leaderboard-api/server"
 	"log"
@@ -10,45 +10,29 @@ import (
 	"os"
 )
 
-const localUri = "mongodb://localhost:27017"
 const serverTypeDev = "dev"
-const serverTypeProd = "prod"
-
-var errorWrongConfiguration = errors.New("wrong server configuration")
 
 func main() {
-	configuration, err := ParseArguments(os.Args)
+	// load .env file
+	err := godotenv.Load(".env")
+
 	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
+		log.Fatalf("Error loading .env file")
 	}
-	store, closeConnection := datastore.NewDatabaseLeaderboardStore(configuration)
+	configuration := server.ConfigurationType{
+		Server:     os.Getenv("SERVER"),
+		Connection: os.Getenv("URI"),
+		Message:    "Initializing Development Server",
+	}
+
+	store := datastore.NewDatabaseLeaderboardStore(configuration)
+	closeConnection := store.InitializeConnection()
 	defer closeConnection()
 	var leaderboardServer *server.LeaderboardServer
 	leaderboardServer = ConfigureServer(configuration, store)
 	log.Fatal(http.ListenAndServe(":5000", leaderboardServer))
 }
 
-func ParseArguments(args []string) (server.ConfigurationType, error) {
-	if len(args) == 2 && args[1] != serverTypeDev {
-		return server.ConfigurationType{}, errorWrongConfiguration
-	}
-	if len(args) == 3 && args[1] != serverTypeProd {
-		return server.ConfigurationType{}, errorWrongConfiguration
-	}
-	if args[1] == serverTypeProd {
-		return server.ConfigurationType{
-			Server:     serverTypeProd,
-			Connection: args[2],
-			Message:    "Initializing Production Server",
-		}, nil
-	}
-	return server.ConfigurationType{
-		Server:     serverTypeDev,
-		Connection: localUri,
-		Message:    "Initializing Development Server",
-	}, nil
-}
 
 func ConfigureServer(s server.ConfigurationType, store server.LeaderboardStore) *server.LeaderboardServer {
 	var leaderboardServer *server.LeaderboardServer
