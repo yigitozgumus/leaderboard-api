@@ -1,18 +1,15 @@
 package datastore
 
 import (
+	"context"
 	"github.com/yigitozgumus/leaderboard-api/server"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 )
 
 type DatabaseLeaderboardStore struct {
-
-}
-
-func (d *DatabaseLeaderboardStore) configureDatabaseConnection() {
-	// FIXME
+	Client *mongo.Client
 }
 
 func (d *DatabaseLeaderboardStore) GetUserRankings() []server.User {
@@ -46,6 +43,14 @@ func (d *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Subm
 	return nil
 }
 
-func NewDatabaseLeaderboardStore() (*DatabaseLeaderboardStore, func()) {
-	//FIXME
+func NewDatabaseLeaderboardStore(config server.ConfigurationType) (*DatabaseLeaderboardStore, func()) {
+	clientOptions := options.Client().ApplyURI(config.Connection)
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+	closeConnection := func() {
+		client.Disconnect(context.TODO())
+	}
+	return &DatabaseLeaderboardStore{client}, closeConnection
 }

@@ -47,6 +47,12 @@ type Submission struct {
 	MinScore       int `json:"min_score"`
 }
 
+type ConfigurationType struct {
+	Server     string
+	Connection string
+	Message    string
+}
+
 // errors
 var invalidCountryError = errors.New("invalid country input")
 var UserExistsError = errors.New("user exists")
