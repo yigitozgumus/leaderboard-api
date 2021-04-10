@@ -17,6 +17,7 @@ import (
 )
 
 var dbError = errors.New("error with database")
+var ErrScoreSubmission = errors.New("Score submission failure")
 
 type DatabaseLeaderboardStore struct {
 	client         *mongo.Client
@@ -106,45 +107,58 @@ func (d *DatabaseLeaderboardStore) SubmitUserScore(score server.Score) (server.S
 	if find.Err() != nil {
 		return score, errors.New("current score should have a entry")
 	}
-	filter := bson.M{
-		"score": bson.M{
-			"$eq": currentScore,
-		},
+	err := d.removeOldScoreOfUser(currentScore, score.UserId)
+	if err != nil {
+		return score, ErrScoreSubmission
 	}
+	err = d.updateNewScore(newScore, score.UserId)
+	if err != nil {
+		d.getRankings().InsertOne(nil,Ranking{newScore, []UserRank{UserRank{score.UserId}}})
+	}
+	err = d.updateUserTotalPoints(newScore, score.UserId)
+	if err != nil {
+		return score, ErrScoreSubmission
+	}
+	return score, nil
+}
+
+func (d *DatabaseLeaderboardStore) removeOldScoreOfUser(currentScore float64, userId string ) error {
+	filter := bson.M{ "score": bson.M{ "$eq": currentScore, }, }
 	update := bson.M{
-			"$pull": bson.M{
-				"current_users" : bson.M {
-				"user_id": bson.M{"$in": bson.A{score.UserId}}}},
-		}
-
-	res := d.getRankings().FindOneAndUpdate(nil, filter, update)
-	if res.Err() != nil {
-
+		"$pull": bson.M{
+			"current_users" : bson.M {
+				"user_id": bson.M{"$in": bson.A{userId}}}},
 	}
-	filter = bson.M{
+	res := d.getRankings().FindOneAndUpdate(nil, filter, update)
+	return res.Err()
+}
+
+func (d *DatabaseLeaderboardStore) updateNewScore(newScore float64, userId string) error {
+	filter := bson.M{
 		"score": bson.M{
 			"$eq": newScore,
 		},
 	}
-	update = bson.M{
+	update := bson.M{
 		"$push": bson.M{
-			"current_users.user_id": score.UserId}}
-	res = d.getRankings().FindOneAndUpdate(nil, filter, update)
-	if res.Err() != nil {
-		d.getRankings().InsertOne(nil,Ranking{newScore, []UserRank{UserRank{score.UserId}}})
-	}
-	filter = bson.M {
+			"current_users.user_id": userId}}
+	res := d.getRankings().FindOneAndUpdate(nil, filter, update)
+	return res.Err()
+}
+
+func (d *DatabaseLeaderboardStore) updateUserTotalPoints(updatedScore float64, userId string) error {
+	filter := bson.M {
 		"_id": bson.M {
-			"$eq": score.UserId,
+			"$eq": userId,
 		},
 	}
-	update = bson.M {
+	update := bson.M {
 		"$set" : bson.M {
-			"points": newScore,
+			"points": updatedScore,
 		},
 	}
-	d.getUsers().FindOneAndUpdate(nil , filter, update)
-	return server.Score{}, nil
+	res := d.getUsers().FindOneAndUpdate(nil , filter, update)
+	return res.Err()
 }
 
 func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submission) error {
