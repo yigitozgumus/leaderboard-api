@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-
 	"github.com/go-chi/chi"
 )
 
@@ -13,12 +12,13 @@ const jsonContentType = "application/json"
 const keyContentType = "Content-Type"
 
 type User struct {
-	UserId      string  `json:"user_id,omitempty"`
-	DisplayName string  `json:"display_name"`
-	Points      float64 `json:"points"`
-	Rank        uint32  `json:"rank"`
-	Country     string  `json:"country"`
+	UserId      string  `json:"user_id,omitempty" bson:"_id"`
+	DisplayName string  `json:"display_name" bson:"display_name"`
+	Points      float64 `json:"points" bson:"points"`
+	Rank        uint64  `json:"rank" bson:"rank"`
+	Country     string  `json:"country" bson:"country"`
 }
+
 
 type Score struct {
 	Score     float64 `json:"score"`
