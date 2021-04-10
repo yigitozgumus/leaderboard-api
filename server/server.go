@@ -3,8 +3,8 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"net/http"
 	"github.com/go-chi/chi"
+	"net/http"
 )
 
 // consts
@@ -49,6 +49,7 @@ type Submission struct {
 
 type ConfigurationType struct {
 	Server     string
+	Storage         string
 	Connection string
 	Message    string
 }

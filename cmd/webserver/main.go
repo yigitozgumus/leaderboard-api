@@ -19,17 +19,24 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading .env file")
 	}
+	serverType := os.Getenv("SERVER")
+	storageType := os.Getenv("STORAGE_TYPE")
 	configuration := server.ConfigurationType{
-		Server:     os.Getenv("SERVER"),
+		Server:     serverType,
+		Storage:    storageType,
 		Connection: os.Getenv("URI"),
-		Message:    "Initializing Development Server",
+		Message:    "Initializing " + serverType + " server with " + storageType,
 	}
-
-	store := datastore.NewDatabaseLeaderboardStore(configuration)
-	closeConnection := store.InitializeConnection()
-	defer closeConnection()
 	var leaderboardServer *server.LeaderboardServer
-	leaderboardServer = ConfigureServer(configuration, store)
+	if configuration.Storage == "memory" {
+		store := datastore.NewInMemoryRankingStore()
+		leaderboardServer = ConfigureServer(configuration, store)
+	} else {
+		store := datastore.NewDatabaseLeaderboardStore(configuration)
+		leaderboardServer = ConfigureServer(configuration, store)
+		closeConnection := store.InitializeConnection()
+		defer closeConnection()
+	}
 	log.Fatal(http.ListenAndServe(":5000", leaderboardServer))
 }
 
