@@ -2,41 +2,50 @@ package datastore
 
 import (
 	"github.com/yigitozgumus/leaderboard-api/server"
-	"io"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type DatabaseLeaderboardStore struct {
-	playerDatabase  io.Reader
-	rankingDatabase io.Reader
+
 }
 
-func (f *DatabaseLeaderboardStore) GetUserRankings() []server.User {
+func (d *DatabaseLeaderboardStore) configureDatabaseConnection() {
+	// FIXME
+}
+
+func (d *DatabaseLeaderboardStore) GetUserRankings() []server.User {
 	// FIXME
 	return nil
 }
 
-func (f *DatabaseLeaderboardStore) GetUserRankingsFiltered(country string) []server.User {
+func (d *DatabaseLeaderboardStore) GetUserRankingsFiltered(country string) []server.User {
 	// FIXME
 	return nil
 }
-func (f *DatabaseLeaderboardStore) CreateUserProfile(user server.User) error {
+func (d *DatabaseLeaderboardStore) CreateUserProfile(user server.User) error {
 	// FIXME
 	return nil
 }
-func (f *DatabaseLeaderboardStore) GetUserProfile(userId string) (server.User, error) {
+func (d *DatabaseLeaderboardStore) GetUserProfile(userId string) (server.User, error) {
 	// FIXME
 	return server.User{}, nil
 }
 
-func (f *DatabaseLeaderboardStore) SubmitUserScore(score server.Score) (server.Score, error) {
+func (d *DatabaseLeaderboardStore) SubmitUserScore(score server.Score) (server.Score, error) {
 	// FIXME
 	return server.Score{}, nil
 }
-func (f *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submission) error {
+func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submission) error {
 	// FIXME
 	return nil
 }
-func (f *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Submission) error {
+func (d *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Submission) error {
 	// FIXME
 	return nil
+}
+
+func NewDatabaseLeaderboardStore() (*DatabaseLeaderboardStore, func()) {
+	//FIXME
 }
