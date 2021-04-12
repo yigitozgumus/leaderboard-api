@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"net/http"
 )
 
@@ -69,6 +70,8 @@ func NewLeaderboardServer(store LeaderboardStore, isDevelopment bool) *Leaderboa
 	l := new(LeaderboardServer)
 	l.store = store
 	router := chi.NewRouter()
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
 
 	router.Get("/leaderboard", l.leaderboardHandler)
 	router.Get("/leaderboard/{slug}", l.leaderboardFilterHandler)

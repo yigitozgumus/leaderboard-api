@@ -169,21 +169,22 @@ func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submissi
 }
 func (d *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Submission) error {
 	numberOfScores := submission.SubmissionSize
-	var userList []server.User
-	res, err := d.getUsers().Find(Ctx, bson.D{})
+	scores, err := d.RedisClient.ZRevRangeWithScores(Ctx, leaderboardKey, 0, -1).Result()
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
-	res.Decode(&userList)
-	var userIdList []string
-	for _,user := range userList {
-		userIdList = append(userIdList, user.UserId)
+	var userList []string
+	for _, score := range scores {
+		str, _ := score.Member.(string)
+		var user server.User
+		findOptions := options.FindOne()
+		err = d.getUsers().FindOne(Ctx, bson.M{"display_name": str}, findOptions).Decode(&user)
+		userList = append(userList, user.UserId)
 	}
 	for index := 0; index < numberOfScores; index++ {
 		score := getRandomScore(submission)
-		_, _ = d.SubmitUserScore(server.Score{Score: score, UserId: getRandomEntry(userIdList)})
+		_, _ = d.SubmitUserScore(server.Score{Score: score, UserId: getRandomEntry(userList)})
 	}
-
 	return nil
 }
 
