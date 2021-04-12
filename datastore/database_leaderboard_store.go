@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -208,7 +209,7 @@ func (d *DatabaseLeaderboardStore) InitializeConnection() func() {
 	d.getUsers().Indexes().CreateOne(Ctx, mod)
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: d.redisUri,
-		Password: "",
+		Password: os.Getenv("REDIS_PASSWORD"),
 		DB: 0,
 	})
 	if err := redisClient.Ping(Ctx).Err(); err != nil {
