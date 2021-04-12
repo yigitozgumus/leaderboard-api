@@ -60,7 +60,7 @@ func (d *DatabaseLeaderboardStore) CreateUserProfile(user server.User) error {
 	if err != nil {
 		return err
 	}
-	user.Rank = uint64(count) + 1
+	user.Rank = int64(count) + 1
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_, dbError := d.getUsers().InsertOne(ctx, user)
@@ -166,7 +166,7 @@ func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submissi
 	var userList []interface{}
 	for index := 1; index <= userSize ; index++ {
 		userList = append(userList, server.User{
-			Rank: uint64(count) + uint64(index),
+			Rank: int64(count) + int64(index),
 			UserId:      uuid.New().String(),
 			DisplayName: randstr.String(10),
 			Country:     getRandomEntry(countryList)})

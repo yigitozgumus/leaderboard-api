@@ -15,8 +15,12 @@ type User struct {
 	UserId      string  `json:"user_id,omitempty" bson:"_id"`
 	DisplayName string  `json:"display_name" bson:"display_name"`
 	Points      float64 `json:"points" bson:"points"`
-	Rank        uint64  `json:"rank" bson:"rank"`
+	Rank        int64  `json:"rank" bson:"rank"`
 	Country     string  `json:"country" bson:"country"`
+}
+
+func (u User) MarshalBinary() ([]byte, error) {
+	return json.Marshal(u)
 }
 
 

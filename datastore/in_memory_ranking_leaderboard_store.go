@@ -26,7 +26,7 @@ func (i *InMemoryRankingLeaderboardStore) GetUserRankings() []server.User {
 		for key := range users {
 			user := i.playerMap[key]
 			user.UserId = "" // remove userId on display
-			user.Rank = uint64(len(leaderboard) + 1)
+			user.Rank = int64(len(leaderboard) + 1)
 			leaderboard = append(leaderboard, user)
 		}
 	}
@@ -52,7 +52,7 @@ func (i *InMemoryRankingLeaderboardStore) CreateUserProfile(user server.User) er
 	i.userLock.Lock()
 	defer i.userLock.Unlock()
 	i.displayNameMap[user.DisplayName] = user.UserId
-	user.Rank = uint64(len(i.displayNameMap) + 1)
+	user.Rank = int64(len(i.displayNameMap) + 1)
 	i.playerMap[user.UserId] = user
 	if rankings, exists := i.rankMap.Get(user.Points); exists {
 		rankings[user.UserId] = 1
