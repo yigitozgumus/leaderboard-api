@@ -90,6 +90,12 @@ func (d *DatabaseLeaderboardStore) CreateUserProfile(user server.User) (server.U
 	user.UserId = uuid.New().String()
 	d.userLock.Lock()
 	defer d.userLock.Unlock()
+	var u server.User
+	filter := bson.D{{"display_name", user.DisplayName}}
+	err := d.getUsers().FindOne(nil, filter).Decode(&u)
+	if err == nil {
+		return server.User{}, server.UserExistsError
+	}
 	user.Points = 0
 	_, dbError := d.getUsers().InsertOne(Ctx, user)
 	if dbError != nil {
@@ -197,6 +203,13 @@ func (d *DatabaseLeaderboardStore) InitializeConnection() func() {
 		log.Fatal(err)
 	}
 	d.MongoClient = client
+	mod := mongo.IndexModel{
+		Keys: bson.M{
+			"display_name": 1, // index in ascending order
+		},
+		Options: options.Index().SetUnique(true),
+	}
+	d.getUsers().Indexes().CreateOne(Ctx, mod)
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: d.redisUri,
 		Password: "",
