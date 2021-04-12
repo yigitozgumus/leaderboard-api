@@ -24,7 +24,8 @@ func main() {
 	configuration := server.ConfigurationType{
 		Server:     serverType,
 		Storage:    storageType,
-		Connection: os.Getenv("URI"),
+		MongoUri: os.Getenv("ATLAS_URI"),
+		RedisUri: os.Getenv("REDIS_URI"),
 		Message:    "Initializing " + serverType + " server with " + storageType,
 	}
 	var leaderboardServer *server.LeaderboardServer
@@ -32,19 +33,12 @@ func main() {
 	case "memory":
 		store := datastore.NewInMemoryRankingStore()
 		leaderboardServer = ConfigureServer(configuration, store)
-	case "mongo":
+	case "final":
 		store := datastore.NewDatabaseLeaderboardStore(configuration)
 		leaderboardServer = ConfigureServer(configuration, store)
 		closeConnection := store.InitializeConnection()
+		store.InitializeRedisCache()
 		defer closeConnection()
-
-	case "redis":
-		store := datastore.NewRedisLeaderboardStore(configuration)
-		leaderboardServer = ConfigureServer(configuration, store)
-		err := store.InitializeConnection()
-		if err != nil {
-			log.Fatalf("Failed to connect to redis: %s", err.Error())
-		}
 	}
 
 	log.Fatal(http.ListenAndServe(":5000", leaderboardServer))

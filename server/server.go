@@ -17,6 +17,7 @@ type User struct {
 	Points      float64 `json:"points" bson:"points"`
 	Rank        int64  `json:"rank" bson:"rank"`
 	Country     string  `json:"country" bson:"country"`
+	LastScoreTimeStamp string `bson:"last_score_timestamp"`
 }
 
 func (u User) MarshalBinary() ([]byte, error) {
@@ -33,7 +34,7 @@ type Score struct {
 type LeaderboardStore interface {
 	GetUserRankings() []User
 	GetUserRankingsFiltered(country string) []User
-	CreateUserProfile(user User) error
+	CreateUserProfile(user User) (User, error)
 	GetUserProfile(userId string) (User, error)
 	SubmitUserScore(score Score) (Score, error)
 	CreateUserProfiles(submission Submission) error
@@ -52,10 +53,11 @@ type Submission struct {
 }
 
 type ConfigurationType struct {
-	Server     string
-	Storage         string
-	Connection string
-	Message    string
+	Server   string
+	Storage  string
+	RedisUri string
+	MongoUri string
+	Message string
 }
 
 // errors
@@ -166,14 +168,14 @@ func (l *LeaderboardServer) createUserHandler(w http.ResponseWriter, r *http.Req
 		}
 		return
 	}
-	err = l.store.CreateUserProfile(u)
+	user, err := l.store.CreateUserProfile(u)
 	if err != nil {
 		if errors.As(err, &UserExistsError) {
 			errorResponse(w, err.Error(), http.StatusForbidden)
 		}
 		return
 	}
-	successResponse(w)
+	json.NewEncoder(w).Encode(user)
 }
 
 // handles creating dummy users for testing

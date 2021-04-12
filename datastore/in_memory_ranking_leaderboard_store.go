@@ -44,10 +44,10 @@ func (i *InMemoryRankingLeaderboardStore) GetUserRankingsFiltered(country string
 	return filtered
 }
 
-func (i *InMemoryRankingLeaderboardStore) CreateUserProfile(user server.User) error {
+func (i *InMemoryRankingLeaderboardStore) CreateUserProfile(user server.User) (server.User,error) {
 	user.UserId = uuid.New().String()
 	if _, exists := i.displayNameMap[user.DisplayName]; exists {
-		return server.UserExistsError
+		return server.User{}, server.UserExistsError
 	}
 	i.userLock.Lock()
 	defer i.userLock.Unlock()
@@ -60,7 +60,7 @@ func (i *InMemoryRankingLeaderboardStore) CreateUserProfile(user server.User) er
 	} else {
 		i.rankMap.Set(user.Points, map[string]int{user.UserId: 1})
 	}
-	return nil
+	return server.User{}, nil
 }
 
 func (i *InMemoryRankingLeaderboardStore) GetUserProfile(userId string) (server.User, error) {
@@ -100,7 +100,7 @@ func (i *InMemoryRankingLeaderboardStore) SubmitUserScore(score server.Score) (s
 func (i *InMemoryRankingLeaderboardStore) CreateUserProfiles(submission server.Submission) error {
 	userSize := submission.SubmissionSize
 	for index := 0; index < userSize; index++ {
-		_ = i.CreateUserProfile(server.User{DisplayName: randstr.String(10), Country: getRandomEntry(countryList)})
+		_, _ = i.CreateUserProfile(server.User{DisplayName: randstr.String(10), Country: getRandomEntry(countryList)})
 	}
 	return nil
 }

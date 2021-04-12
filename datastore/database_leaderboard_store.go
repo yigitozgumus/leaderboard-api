@@ -3,28 +3,36 @@ package datastore
 import (
 	"context"
 	"errors"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/thanhpk/randstr"
 	"github.com/yigitozgumus/leaderboard-api/server"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"log"
-	"math"
+	"strings"
 	"sync"
 	"time"
 )
 
-var dbError = errors.New("error with database")
-var ErrScoreSubmission = errors.New("Score submission failure")
+var (
+	ErrNil = errors.New("no matching record found in redis database")
+	Ctx    = context.TODO()
+	dbError = errors.New("error with database")
+	ErrScoreSubmission = errors.New("Score submission failure")
+	ErrRankAcquire = errors.New("rank of the user is not available")
+	leaderboardKey = "leaderboard"
+	userKey = "user:"
+)
 
 type DatabaseLeaderboardStore struct {
-	client         *mongo.Client
-	ctx            context.Context
-	connection     string
-	userLock       *sync.Mutex
-	scoreLock      *sync.Mutex
+	MongoClient *mongo.Client
+	RedisClient *redis.Client
+	mongoUri    string
+	redisUri string
+	userLock    *sync.Mutex
+	scoreLock   *sync.Mutex
 }
 
 type Ranking struct {
@@ -37,122 +45,106 @@ type UserRank struct {
 }
 
 func (d *DatabaseLeaderboardStore) GetUserRankings() []server.User {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err := d.client.Ping(ctx, readpref.Primary())
+	scores, err := d.RedisClient.ZRevRangeWithScores(Ctx, leaderboardKey, 0, -1).Result()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return nil
+	var users []server.User
+	for _, score := range scores {
+		str, _ := score.Member.(string)
+		var user server.User
+		findOptions := options.FindOne()
+		err = d.getUsers().FindOne(Ctx, bson.M{"display_name": str}, findOptions).Decode(&user)
+		rank, err := d.RedisClient.ZRevRank(Ctx, leaderboardKey, user.DisplayName).Result()
+		if err != nil {
+			return nil
+		}
+		user.Rank = int64(rank + 1)
+		users = append(users, user)
+	}
+	return users
 }
 
 func (d *DatabaseLeaderboardStore) GetUserRankingsFiltered(country string) []server.User {
-	// FIXME
-	return nil
+	scores, err := d.RedisClient.ZRevRangeWithScores(Ctx, leaderboardKey+":"+strings.ToLower(country), 0, -1).Result()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var users []server.User
+	for _, score := range scores {
+		str, _ := score.Member.(string)
+		var user server.User
+		findOptions := options.FindOne()
+		err = d.getUsers().FindOne(Ctx, bson.M{"display_name": str}, findOptions).Decode(&user)
+		rank, err := d.RedisClient.ZRevRank(Ctx,  leaderboardKey+":"+strings.ToLower(country), user.DisplayName).Result()
+		if err != nil {
+			return nil
+		}
+		user.Rank = int64(rank + 1)
+		users = append(users, user)
+	}
+	return users
 }
 
-func (d *DatabaseLeaderboardStore) CreateUserProfile(user server.User) error {
+func (d *DatabaseLeaderboardStore) CreateUserProfile(user server.User) (server.User, error) {
 	user.UserId = uuid.New().String()
 	d.userLock.Lock()
 	defer d.userLock.Unlock()
-	filter := bson.D{{"display_name", user.DisplayName}}
-	_ = d.getUsers().FindOne(nil, filter)
-	count, err := d.getUsers().CountDocuments(context.Background(), bson.D{})
-	if err != nil {
-		return err
-	}
-	user.Rank = int64(count) + 1
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	_, dbError := d.getUsers().InsertOne(ctx, user)
+	user.Points = 0
+	_, dbError := d.getUsers().InsertOne(Ctx, user)
 	if dbError != nil {
-		return dbError
+		return server.User{}, dbError
 	}
-	find := d.getRankings().FindOne(nil, bson.M{"score": 0})
-	if find.Err() != nil {
-		d.getRankings().InsertOne(nil,Ranking{0, []UserRank{UserRank{user.UserId}}})
-	} else {
-		filter := bson.M{
-			"score": bson.M{
-				"$eq": 0,
-			},
-		}
-		update := bson.M{
-			"$push": bson.M{
-				"current_users": bson.M{"user_id": user.UserId}}}
-		_ = d.getRankings().FindOneAndUpdate(nil, filter, update)
+	member := &redis.Z{
+		Score: float64(user.Points),
+		Member: user.DisplayName,
 	}
-
-	return nil
+	d.RedisClient.ZAdd(Ctx, leaderboardKey, member)
+	d.RedisClient.ZAdd(Ctx, leaderboardKey+":"+strings.ToLower(user.Country), member)
+	rank, err := d.RedisClient.ZRevRank(Ctx, leaderboardKey, user.DisplayName).Result()
+	if err != nil {
+		return server.User{}, ErrRankAcquire
+	}
+	user.Rank = rank + 1
+	return user, nil
 }
 
 func (d *DatabaseLeaderboardStore) GetUserProfile(userId string) (server.User, error) {
 	var u server.User
 	filter := bson.M{ "_id": bson.M{"$eq": userId}}
-	err := d.getUsers().FindOne(nil, filter).Decode(&u)
-	if err != nil {
+	if err := d.getUsers().FindOne(nil, filter).Decode(&u); err != nil {
 		return server.User{}, dbError
 	}
+	rank, err := d.RedisClient.ZRevRank(Ctx, leaderboardKey, u.UserId).Result()
+	if err != nil {
+		return server.User{}, ErrRankAcquire
+	}
+	u.Rank = rank + 1
 	return u, nil
-	// FIXME update user's current ranking
 }
 
 func (d *DatabaseLeaderboardStore) SubmitUserScore(score server.Score) (server.Score, error) {
+	var u server.User
 	score.TimeStamp = time.Now().String()
-	// check if the user is present
-	find := d.getUsers().FindOne(nil, bson.M{"_id" : score.UserId})
-	if find.Err() != nil {
+	update := bson.D{
+		{"$inc", bson.D{
+			{"points", score.Score}}},
+			{"$set", bson.D{{"last_score_timestamp", score.TimeStamp}}}}
+
+	err := d.getUsers().FindOneAndUpdate(nil, bson.M{"_id" : score.UserId}, update).Decode(&u)
+	if err != nil {
 		return score, server.NoUserPresentError
 	}
-	d.scoreLock.Lock()
-	defer d.scoreLock.Unlock()
-	var u server.User
-	find.Decode(&u)
-	currentScore := u.Points
-	newScore := currentScore + score.Score
-	newScore = math.Round(newScore*100) / 100
-	// check if current score of the player is present in the leaderboard
-	find = d.getRankings().FindOne(nil, bson.M{"score": currentScore})
-	if find.Err() != nil {
-		return score, errors.New("current score should have a entry")
-	}
-	err := d.removeOldScoreOfUser(currentScore, score.UserId)
+	_, err = d.RedisClient.ZIncrBy(Ctx,leaderboardKey, float64(score.Score), u.DisplayName).Result()
 	if err != nil {
-		return score, ErrScoreSubmission
+		return score, server.NoUserPresentError
 	}
-	err = d.updateNewScore(newScore, score.UserId)
+	_, err = d.RedisClient.ZIncrBy(Ctx,leaderboardKey+":"+strings.ToLower(u.Country), float64(score.Score), u.DisplayName).Result()
 	if err != nil {
-		d.getRankings().InsertOne(nil,Ranking{newScore, []UserRank{UserRank{score.UserId}}})
+		return score, server.NoUserPresentError
 	}
-	err = d.updateUserTotalPoints(newScore, score.UserId)
-	if err != nil {
-		return score, ErrScoreSubmission
-	}
+
 	return score, nil
-}
-
-func (d *DatabaseLeaderboardStore) removeOldScoreOfUser(currentScore float64, userId string ) error {
-	filter := bson.M{ "score": bson.M{ "$eq": currentScore }}
-	update := bson.M{
-		"$pull": bson.M{
-			"current_users" : bson.M {
-				"user_id": bson.M{"$in": bson.A{userId}}}},
-	}
-	res := d.getRankings().FindOneAndUpdate(nil, filter, update)
-	return res.Err()
-}
-
-func (d *DatabaseLeaderboardStore) updateNewScore(newScore float64, userId string) error {
-	filter := bson.M{ "score": bson.M{ "$eq": newScore }}
-	update := bson.M{ "$push": bson.M{ "current_users.user_id": userId}}
-	res := d.getRankings().FindOneAndUpdate(nil, filter, update)
-	return res.Err()
-}
-
-func (d *DatabaseLeaderboardStore) updateUserTotalPoints(updatedScore float64, userId string) error {
-	filter := bson.M { "_id": bson.M { "$eq": userId } }
-	update := bson.M { "$set" : bson.M { "points": updatedScore }}
-	res := d.getUsers().FindOneAndUpdate(nil , filter, update)
-	return res.Err()
 }
 
 func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submission) error {
@@ -171,7 +163,7 @@ func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submissi
 			DisplayName: randstr.String(10),
 			Country:     getRandomEntry(countryList)})
 	}
-	d.client.Database("leaderboard").Collection("users").InsertMany(context.TODO(), userList)
+	d.getUsers().InsertMany(context.TODO(), userList)
 	return nil
 }
 func (d *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Submission) error {
@@ -180,32 +172,79 @@ func (d *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Subm
 }
 
 func (d *DatabaseLeaderboardStore) getUsers() *mongo.Collection {
-	return d.client.Database("leaderboard").Collection("users")
+	return d.MongoClient.Database("leaderboard").Collection("users")
 }
 
 func (d *DatabaseLeaderboardStore) getRankings() *mongo.Collection {
-	return d.client.Database("leaderboard").Collection("rankings")
+	return d.MongoClient.Database("leaderboard").Collection("rankings")
 }
 
 func NewDatabaseLeaderboardStore(config server.ConfigurationType) *DatabaseLeaderboardStore {
 	return &DatabaseLeaderboardStore{
 		nil,
 		nil,
-		config.Connection,
+		config.MongoUri,
+		config.RedisUri,
 		&sync.Mutex{},
 		&sync.Mutex{}}
 }
 
 func (d *DatabaseLeaderboardStore) InitializeConnection() func() {
-	clientOptions := options.Client().ApplyURI(d.connection)
+	clientOptions := options.Client().ApplyURI(d.mongoUri)
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Fatal(err)
 	}
-	d.client = client
+	d.MongoClient = client
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: d.redisUri,
+		Password: "",
+		DB: 0,
+	})
+	if err := redisClient.Ping(Ctx).Err(); err != nil {
+		panic(err)
+	}
+	d.RedisClient = redisClient
 	closeConnection := func() {
-		_ = d.client.Disconnect(ctx)
+		_ = d.MongoClient.Disconnect(ctx)
 	}
 	return closeConnection
+}
+
+func (d *DatabaseLeaderboardStore) InitializeRedisCache() {
+	pipeline := []bson.M{
+		{
+			"$sort": bson.M{
+				"points": -1,
+			},
+		},
+	}
+
+	d.RedisClient.FlushAll(Ctx)
+
+	cursor, err := d.getUsers().Aggregate(Ctx, pipeline)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var users []server.User
+	cursor.All(Ctx, &users)
+
+	for _, user := range users {
+		_, err := d.RedisClient.ZAdd(Ctx, leaderboardKey, &redis.Z{
+			Score:  float64(user.Points),
+			Member: user.DisplayName,
+		}).Result()
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err = d.RedisClient.ZAdd(Ctx, leaderboardKey+":"+strings.ToLower(user.Country), &redis.Z{
+			Score:  float64(user.Points),
+			Member: user.DisplayName,
+		}).Result()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }
