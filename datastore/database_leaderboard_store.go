@@ -13,7 +13,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -32,8 +31,6 @@ type DatabaseLeaderboardStore struct {
 	RedisClient *redis.Client
 	mongoUri    string
 	redisUri string
-	userLock    *sync.Mutex
-	scoreLock   *sync.Mutex
 }
 
 type Ranking struct {
@@ -89,8 +86,6 @@ func (d *DatabaseLeaderboardStore) GetUserRankingsFiltered(country string) []ser
 
 func (d *DatabaseLeaderboardStore) CreateUserProfile(user server.User) (server.User, error) {
 	user.UserId = uuid.New().String()
-	d.userLock.Lock()
-	defer d.userLock.Unlock()
 	var u server.User
 	filter := bson.D{{"display_name", user.DisplayName}}
 	err := d.getUsers().FindOne(nil, filter).Decode(&u)
@@ -156,8 +151,6 @@ func (d *DatabaseLeaderboardStore) SubmitUserScore(score server.Score) (server.S
 
 func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submission) error {
 	userSize := submission.SubmissionSize
-	d.userLock.Lock()
-	defer d.userLock.Unlock()
 	count, err := d.getUsers().CountDocuments(Ctx, bson.D{})
 	if err != nil {
 		return err
@@ -203,9 +196,7 @@ func NewDatabaseLeaderboardStore(config server.ConfigurationType) *DatabaseLeade
 		nil,
 		nil,
 		config.MongoUri,
-		config.RedisUri,
-		&sync.Mutex{},
-		&sync.Mutex{}}
+		config.RedisUri,}
 }
 
 func (d *DatabaseLeaderboardStore) InitializeConnection() func() {
