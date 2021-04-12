@@ -1,5 +1,6 @@
 module github.com/yigitozgumus/leaderboard-api
 
+// +heroku goVersion go1.15
 go 1.15
 
 require (
