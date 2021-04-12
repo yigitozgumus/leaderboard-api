@@ -173,16 +173,12 @@ func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submissi
 	return nil
 }
 func (d *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Submission) error {
-	// FIXME
+
 	return nil
 }
 
 func (d *DatabaseLeaderboardStore) getUsers() *mongo.Collection {
 	return d.MongoClient.Database("leaderboard").Collection("users")
-}
-
-func (d *DatabaseLeaderboardStore) getRankings() *mongo.Collection {
-	return d.MongoClient.Database("leaderboard").Collection("rankings")
 }
 
 func NewDatabaseLeaderboardStore(config server.ConfigurationType) *DatabaseLeaderboardStore {
