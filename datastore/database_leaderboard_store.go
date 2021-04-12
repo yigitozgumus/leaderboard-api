@@ -174,6 +174,21 @@ func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submissi
 	return nil
 }
 func (d *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Submission) error {
+	numberOfScores := submission.SubmissionSize
+	var userList []server.User
+	res, err := d.getUsers().Find(Ctx, bson.D{})
+	if err != nil {
+		return err
+	}
+	res.Decode(&userList)
+	var userIdList []string
+	for _,user := range userList {
+		userIdList = append(userIdList, user.UserId)
+	}
+	for index := 0; index < numberOfScores; index++ {
+		score := getRandomScore(submission)
+		_, _ = d.SubmitUserScore(server.Score{Score: score, UserId: getRandomEntry(userIdList)})
+	}
 
 	return nil
 }

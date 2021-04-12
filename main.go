@@ -15,11 +15,8 @@ const serverTypeDev = "dev"
 
 func main() {
 	// load .env file
-	err := godotenv.Load(".env")
+	_ = godotenv.Load(".env")
 
-	if err != nil {
-		fmt.Printf("Error loading .env file")
-	}
 	serverType := os.Getenv("SERVER")
 	storageType := os.Getenv("STORAGE_TYPE")
 	redisUrl, _ := redis.ParseURL(os.Getenv("REDIS_URL"))
