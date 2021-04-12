@@ -24,8 +24,8 @@ func main() {
 	configuration := server.ConfigurationType{
 		Server:     serverType,
 		Storage:    storageType,
-		MongoUri: os.Getenv("ATLAS_URI"),
-		RedisUri: os.Getenv("REDIS_URI"),
+		MongoUri: os.Getenv("ATLAS_URL"),
+		RedisUri: os.Getenv("REDIS_URL"),
 		Message:    "Initializing " + serverType + " server with " + storageType,
 	}
 	var leaderboardServer *server.LeaderboardServer
