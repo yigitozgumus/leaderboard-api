@@ -28,15 +28,25 @@ func main() {
 		Message:    "Initializing " + serverType + " server with " + storageType,
 	}
 	var leaderboardServer *server.LeaderboardServer
-	if configuration.Storage == "memory" {
+	switch configuration.Storage {
+	case "memory":
 		store := datastore.NewInMemoryRankingStore()
 		leaderboardServer = ConfigureServer(configuration, store)
-	} else {
+	case "mongo":
 		store := datastore.NewDatabaseLeaderboardStore(configuration)
 		leaderboardServer = ConfigureServer(configuration, store)
 		closeConnection := store.InitializeConnection()
 		defer closeConnection()
+
+	case "redis":
+		store := datastore.NewRedisLeaderboardStore(configuration)
+		leaderboardServer = ConfigureServer(configuration, store)
+		err := store.InitializeConnection()
+		if err != nil {
+			log.Fatalf("Failed to connect to redis: %s", err.Error())
+		}
 	}
+
 	log.Fatal(http.ListenAndServe(":5000", leaderboardServer))
 }
 

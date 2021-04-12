@@ -84,6 +84,7 @@ func (d *DatabaseLeaderboardStore) CreateUserProfile(user server.User) error {
 
 	return nil
 }
+
 func (d *DatabaseLeaderboardStore) GetUserProfile(userId string) (server.User, error) {
 	var u server.User
 	filter := bson.M{ "_id": bson.M{"$eq": userId}}
@@ -92,6 +93,7 @@ func (d *DatabaseLeaderboardStore) GetUserProfile(userId string) (server.User, e
 		return server.User{}, dbError
 	}
 	return u, nil
+	// FIXME update user's current ranking
 }
 
 func (d *DatabaseLeaderboardStore) SubmitUserScore(score server.Score) (server.Score, error) {
