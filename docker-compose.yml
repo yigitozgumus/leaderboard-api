@@ -1,0 +1,40 @@
+version: "3"
+services:
+  server:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS: redis:6379
+      MONGO: mongodb://mongo:27017
+      PORT: "8000"
+    depends_on:
+      - redis
+    networks:
+      - leaderboard-network
+
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    restart: always
+    networks:
+      - leaderboard-network
+
+  mongo:
+    image: mongo
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - leaderboard-network
+
+volumes:
+  mongo-data:
+networks:
+  leaderboard-network:
