@@ -17,7 +17,7 @@ func main() {
 	err := godotenv.Load(".env")
 
 	if err != nil {
-		log.Fatalf("Error loading .env file")
+		fmt.Printf("Error loading .env file")
 	}
 	serverType := os.Getenv("SERVER")
 	storageType := os.Getenv("STORAGE_TYPE")
