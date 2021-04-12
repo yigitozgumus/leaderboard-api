@@ -39,8 +39,11 @@ func main() {
 		store.InitializeRedisCache()
 		defer closeConnection()
 	}
-
-	log.Fatal(http.ListenAndServe(":5000", leaderboardServer))
+	var port = os.Getenv("PORT")
+	if port == "" {
+		port = "5000"
+	}
+	log.Fatal(http.ListenAndServe(":" + port, leaderboardServer))
 }
 
 
