@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
 	"github.com/yigitozgumus/leaderboard-api/datastore"
 	"github.com/yigitozgumus/leaderboard-api/server"
@@ -21,11 +22,12 @@ func main() {
 	}
 	serverType := os.Getenv("SERVER")
 	storageType := os.Getenv("STORAGE_TYPE")
+	redisUrl, _ := redis.ParseURL(os.Getenv("REDIS_URL"))
 	configuration := server.ConfigurationType{
 		Server:     serverType,
 		Storage:    storageType,
 		MongoUri: os.Getenv("ATLAS_URL"),
-		RedisUri: os.Getenv("REDIS_URL"),
+		RedisUri: redisUrl.Addr,
 		Message:    "Initializing " + serverType + " server with " + storageType,
 	}
 	var leaderboardServer *server.LeaderboardServer
