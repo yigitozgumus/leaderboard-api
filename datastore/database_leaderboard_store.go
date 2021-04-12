@@ -158,19 +158,20 @@ func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submissi
 	userSize := submission.SubmissionSize
 	d.userLock.Lock()
 	defer d.userLock.Unlock()
-	count, err := d.getUsers().CountDocuments(context.Background(), bson.D{})
+	count, err := d.getUsers().CountDocuments(Ctx, bson.D{})
 	if err != nil {
 		return err
 	}
-	var userList []interface{}
+
 	for index := 1; index <= userSize ; index++ {
-		userList = append(userList, server.User{
+		user := server.User{
 			Rank: int64(count) + int64(index),
 			UserId:      uuid.New().String(),
 			DisplayName: randstr.String(10),
-			Country:     getRandomEntry(countryList)})
+			Country:     getRandomEntry(countryList)}
+		d.CreateUserProfile(user)
 	}
-	d.getUsers().InsertMany(context.TODO(), userList)
+
 	return nil
 }
 func (d *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Submission) error {
