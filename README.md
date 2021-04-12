@@ -7,19 +7,18 @@ that will return users ranked by their points.
 
 ```bash
 .
+├── Dockerfile
 ├── LICENSE
 ├── README.md
-├── cmd
-│ ├── cli
-│ │ └── main.go
-│ └── webserver
-│     └── main.go
 ├── datastore
+│ ├── database_leaderboard_store.go
 │ ├── gotemplate_RankingMap.go
 │ ├── in_memory_leaderboard_store.go
-│ └── in_memory_ranking_leaderboard_store.go
+│ ├── in_memory_ranking_leaderboard_store.go
+│ └── util.go
 ├── go.mod
 ├── go.sum
+├── main.go
 └── server
     ├── server.go
     └── server_test.go
