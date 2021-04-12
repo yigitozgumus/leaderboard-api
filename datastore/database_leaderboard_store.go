@@ -164,7 +164,7 @@ func (d *DatabaseLeaderboardStore) CreateUserProfiles(submission server.Submissi
 			Country:     getRandomEntry(countryList)}
 		d.CreateUserProfile(user)
 	}
-
+	d.InitializeRedisCache()
 	return nil
 }
 func (d *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Submission) error {
@@ -185,6 +185,7 @@ func (d *DatabaseLeaderboardStore) CreateScoreSubmissions(submission server.Subm
 		score := getRandomScore(submission)
 		_, _ = d.SubmitUserScore(server.Score{Score: score, UserId: getRandomEntry(userList)})
 	}
+
 	return nil
 }
 
