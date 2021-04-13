@@ -1,0 +1,6 @@
+# Example env file configuration
+
+SERVER=dev # either dev or prod
+STORAGE_TYPE=final #memory, mongo
+ATLAS_URL=<mongodb instance connection uri> # mongodb://localhost:27017 for local development.
+REDIS_URL=<redis instance connection uri> # localhost:6379 for local development

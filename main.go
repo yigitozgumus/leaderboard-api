@@ -19,12 +19,19 @@ func main() {
 
 	serverType := os.Getenv("SERVER")
 	storageType := os.Getenv("STORAGE_TYPE")
-	redisUrl, _ := redis.ParseURL(os.Getenv("REDIS_URL"))
+	var redisURL string
+	if serverType == "dev" {
+		redisURL = os.Getenv("REDIS_URL")
+	} else {
+		parse, _ := redis.ParseURL(os.Getenv("REDIS_URL"))
+		redisURL = parse.Addr
+	}
+	//redisUrl, _ := redis.ParseURL(os.Getenv("REDIS_URL"))
 	configuration := server.ConfigurationType{
 		Server:     serverType,
 		Storage:    storageType,
 		MongoUri: os.Getenv("ATLAS_URL"),
-		RedisUri: redisUrl.Addr,
+		RedisUri: redisURL,
 		Message:    "Initializing " + serverType + " server with " + storageType,
 	}
 	var leaderboardServer *server.LeaderboardServer
