@@ -8,9 +8,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      REDIS: redis:6379
-      MONGO: mongodb://mongo:27017
+      REDIS_URL: redis:6379
+      ATLAS_URL: mongodb://mongo:27017
       PORT: "8000"
+      SERVER: "dev"
+      STORAGE_TYPE: "final"
     depends_on:
       - redis
     networks:
